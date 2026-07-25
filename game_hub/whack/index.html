@@ -5,26 +5,26 @@
     <title>🔨 打地鼠 - Game Hub</title>
     <link rel="stylesheet" href="../static/style.css">
     <style>
-        body { display: flex; flex-direction: column; user-select: none; cursor: pointer; }
-        .game-wrapper { flex: 1; }
+        body { display:flex; flex-direction:column; user-select:none; cursor:pointer; }
+        .game-wrapper { flex:1; }
         canvas { cursor: url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' width='32' height='32'><text y='28' font-size='28'>🔨</text></svg>") 16 28, auto; }
     </style>
 </head>
 <body>
     <nav class="navbar">
         <a href="../index.html" class="back">← 返回首页</a>
-        <span class="logo">🔨 打地鼠</span>
+        <span class="logo">🔨 打地鼠 · 反应力测试</span>
     </nav>
-    <div class="game-wrapper"><canvas id="game" width="420" height="500"></canvas></div>
-    <footer class="footer">快速点击冒出来的地鼠！&nbsp;|&nbsp; Game Hub</footer>
+    <div class="game-wrapper"><canvas id="game" width="720" height="460"></canvas></div>
+    <footer class="footer">快速点击地鼠！越快分越高 &nbsp;|&nbsp; Game Hub</footer>
     <script>
     const canvas = document.getElementById("game"), ctx = canvas.getContext("2d");
-    const ROWS = 3, COLS = 3, HOLE_R = 45, GAP_X = 140, GAP_Y = 140;
-    const START_X = 70, START_Y = 110;
+    const ROWS = 3, COLS = 5, HOLE_R = 42, GAP_X = 132, GAP_Y = 130;
+    const START_X = 66, START_Y = 110;
 
     let moles = [], score = 0, timeLeft = 30, playing = false, timer = null;
+    let hitTexts = []; // 打击反馈文字
 
-    // ===== 音效 =====
     const ac = new (window.AudioContext||window.webkitAudioContext)();
     function beep(f,d,t="square",v=0.07){
         let o=ac.createOscillator(),g=ac.createGain();
@@ -34,11 +34,22 @@
         o.connect(g);g.connect(ac.destination);o.start();o.stop(ac.currentTime+d);
     }
 
+    // 🆕 反应速度 → 分数映射
+    function reactionScore(ms) {
+        if (ms < 250) return 30;
+        if (ms < 400) return 25;
+        if (ms < 600) return 20;
+        if (ms < 900) return 15;
+        if (ms < 1500) return 10;
+        return 5;
+    }
+
     function init() {
         moles = Array.from({length:ROWS*COLS}, (_,i)=>({
-            row: Math.floor(i/COLS), col: i%COLS, active: false, timer: 0
+            row: Math.floor(i/COLS), col: i%COLS, active: false,
+            timer: 0, appearTime: 0
         }));
-        score = 0; timeLeft = 30; playing = false;
+        score = 0; timeLeft = 30; playing = false; hitTexts = [];
     }
 
     function startGame() {
@@ -47,16 +58,17 @@
         timer = setInterval(() => {
             timeLeft -= 0.1;
             if(timeLeft <= 0) { timeLeft = 0; playing = false; clearInterval(timer); beep(150,0.4,"sawtooth",0.1); }
-            // 随机激活地鼠
-            if(Math.random() < 0.06) {
+            if(Math.random() < 0.08) {
                 let inactive = moles.filter(m=>!m.active);
                 if(inactive.length > 0) {
                     let m = inactive[Math.floor(Math.random()*inactive.length)];
-                    m.active = true; m.timer = 20 + Math.random()*30;
+                    m.active = true; m.appearTime = Date.now(); m.timer = 15 + Math.random()*20;
                 }
             }
-            // 地鼠缩回
             moles.forEach(m => { if(m.active) { m.timer--; if(m.timer<=0) m.active=false; } });
+            // 反馈文字渐隐
+            hitTexts.forEach(h => h.life--);
+            hitTexts = hitTexts.filter(h => h.life > 0);
         }, 100);
     }
 
@@ -67,67 +79,91 @@
         for(let m of moles) {
             if(!m.active) continue;
             let cx = START_X + m.col*GAP_X, cy = START_Y + m.row*GAP_Y;
-            if(Math.hypot(mx-cx, my-cy) < HOLE_R) {
-                m.active = false; score += 10;
-                beep(800,0.06,"square",0.08);  // 🆕 打击音效
-                // 打击动画
-                let px = cx-HOLE_R, py = cy-HOLE_R;
-                ctx.fillStyle = "rgba(255,255,0,0.4)";
-                ctx.beginPath(); ctx.arc(cx,cy,HOLE_R+10,0,Math.PI*2); ctx.fill();
+            if(Math.hypot(mx-cx, my-cy) < HOLE_R + 5) {
+                let reactionMs = Date.now() - m.appearTime;
+                let pts = reactionScore(reactionMs);
+                score += pts;
+                // 🆕 反应速度反馈
+                let speedLabel = reactionMs < 300 ? "⚡极速!" : reactionMs < 600 ? "👍不错" : reactionMs < 1200 ? "😐还行" : "🐢慢了";
+                hitTexts.push({ x: cx, y: cy - 30, text: "+"+pts+" "+(reactionMs/1000).toFixed(2)+"s "+speedLabel, life: 25 });
+                m.active = false;
+                beep(800,0.05,"square",0.07);
             }
         }
     });
 
     function draw() {
-        ctx.fillStyle = "#2d5016"; ctx.fillRect(0,0,420,500);
+        ctx.fillStyle = "#2d5016"; ctx.fillRect(0,0,720,460);
 
-        // 地洞
         for(let m of moles) {
             let cx = START_X + m.col*GAP_X, cy = START_Y + m.row*GAP_Y;
             ctx.fillStyle = "#3a2510";
-            ctx.beginPath(); ctx.ellipse(cx, cy+8, HOLE_R-5, 18, 0, 0, Math.PI*2); ctx.fill();
+            ctx.beginPath(); ctx.ellipse(cx, cy+8, HOLE_R-4, 16, 0, 0, Math.PI*2); ctx.fill();
             ctx.fillStyle = "#1a0f05";
-            ctx.beginPath(); ctx.ellipse(cx, cy+8, HOLE_R-12, 12, 0, 0, Math.PI*2); ctx.fill();
+            ctx.beginPath(); ctx.ellipse(cx, cy+8, HOLE_R-10, 10, 0, 0, Math.PI*2); ctx.fill();
 
-            // 地鼠
             if(m.active) {
-                let offset = m.timer > 10 ? 0 : (10-m.timer)*3;
+                let offset = m.timer > 8 ? 0 : (8-m.timer)*3;
                 let my = cy - 25 + offset;
-                // 身体
                 ctx.fillStyle = "#8B6914";
-                ctx.beginPath(); ctx.arc(cx, my+15, HOLE_R-12, 0, Math.PI*2); ctx.fill();
-                // 脸
+                ctx.beginPath(); ctx.arc(cx, my+15, HOLE_R-10, 0, Math.PI*2); ctx.fill();
                 ctx.fillStyle = "#C49A3C";
-                ctx.beginPath(); ctx.arc(cx, my+8, HOLE_R-18, 0, Math.PI*2); ctx.fill();
-                // 眼睛
+                ctx.beginPath(); ctx.arc(cx, my+8, HOLE_R-16, 0, Math.PI*2); ctx.fill();
                 ctx.fillStyle = "#FFF";
                 ctx.beginPath(); ctx.arc(cx-10, my+4, 8, 0, Math.PI*2); ctx.fill();
                 ctx.beginPath(); ctx.arc(cx+10, my+4, 8, 0, Math.PI*2); ctx.fill();
                 ctx.fillStyle = "#000";
                 ctx.beginPath(); ctx.arc(cx-8, my+3, 4, 0, Math.PI*2); ctx.fill();
                 ctx.beginPath(); ctx.arc(cx+12, my+3, 4, 0, Math.PI*2); ctx.fill();
-                // 鼻子
                 ctx.fillStyle = "#FF6B6B";
                 ctx.beginPath(); ctx.arc(cx, my+10, 5, 0, Math.PI*2); ctx.fill();
-                // 牙齿
                 ctx.fillStyle = "#FFF";
                 ctx.fillRect(cx-4, my+14, 3, 5);
                 ctx.fillRect(cx+1, my+14, 3, 5);
             }
         }
 
+        // 🆕 打击反馈
+        for(let h of hitTexts) {
+            ctx.fillStyle = `rgba(255,255,0,${h.life/25})`; ctx.font = "bold 16px Microsoft YaHei";
+            ctx.textAlign = "center";
+            ctx.fillText(h.text, h.x, h.y - (25-h.life)*1.5);
+        }
+
         // UI
         ctx.fillStyle = "#FFF"; ctx.font = "bold 22px Microsoft YaHei"; ctx.textAlign = "left";
-        ctx.fillText("得分: " + score, 15, 40);
-        ctx.fillText("时间: " + Math.ceil(timeLeft) + "s", 300, 40);
+        ctx.fillText("⚡ 得分: " + score, 15, 40);
+        ctx.fillText("⏱ " + Math.ceil(timeLeft) + "s", 610, 40);
+        // 🆕 反应速度说明
+        ctx.font = "13px Microsoft YaHei"; ctx.fillStyle = "rgba(255,255,255,0.5)";
+        ctx.fillText("<0.25s=30 | <0.4s=25 | <0.6s=20 | <0.9s=15 | <1.5s=10", 200, 40);
 
         if(!playing && timeLeft === 30) {
-            ctx.fillStyle = "rgba(0,0,0,0.5)"; ctx.fillRect(0,0,420,500);
-            ctx.fillStyle = "#FFF"; ctx.font = "bold 30px Microsoft YaHei"; ctx.textAlign = "center";
-            ctx.fillText("🔨 点击开始游戏！", 210, 250);
+            ctx.fillStyle = "rgba(0,0,0,0.55)"; ctx.fillRect(0,0,720,460);
+            ctx.fillStyle = "#FFF"; ctx.font = "bold 32px Microsoft YaHei"; ctx.textAlign = "center";
+            ctx.fillText("🔨 点击开始！测试你的反应速度", 360, 230);
+            ctx.font = "16px Microsoft YaHei"; ctx.fillStyle = "#aaa";
+            ctx.fillText("地鼠出现后越快点击，分数越高！", 360, 265);
         }
         if(!playing && timeLeft === 0) {
-            ctx.fillStyle = "rgba(0,0,0,0.5)"; ctx.fillRect(0,0,420,500);
+            ctx.fillStyle = "rgba(0,0,0,0.55)"; ctx.fillRect(0,0,720,460);
+            ctx.fillStyle = "#FFD700"; ctx.font = "bold 36px Microsoft YaHei"; ctx.textAlign = "center";
+            ctx.fillText("⏰ 时间到！", 360, 200);
+            ctx.fillStyle = "#FFF"; ctx.font = "24px Microsoft YaHei";
+            ctx.fillText("得分: " + score + " 分", 360, 245);
+            let avgReaction = score > 0 ? "平均反应约 " + (timeLeft*1000/(score/15)).toFixed(0) + "ms" : "";
+            ctx.font = "16px Microsoft YaHei"; ctx.fillStyle = "#aaa";
+            ctx.fillText(avgReaction, 360, 275);
+            ctx.fillText("点击重新开始", 360, 305);
+        }
+    }
+
+    init();
+    function loop(){ draw(); requestAnimationFrame(loop); }
+    loop();
+    </script>
+</body>
+</html>
             ctx.fillStyle = "#FFD700"; ctx.font = "bold 36px Microsoft YaHei"; ctx.textAlign = "center";
             ctx.fillText("⏰ 时间到！", 210, 230);
             ctx.fillStyle = "#FFF"; ctx.font = "22px Microsoft YaHei";
