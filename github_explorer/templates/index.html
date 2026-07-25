@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GitHub Python 热门项目可视化</title>
+    <!-- ECharts CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/echarts@5.5.0/dist/echarts.min.js"></script>
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+    <!-- 顶部标题栏 -->
+    <header>
+        <h1>🐍 GitHub Python 热门项目分析</h1>
+        <p>数据来源：GitHub API · Top 100 · 按 Stars 排序</p>
+    </header>
+
+    <!-- 数据概览卡片 -->
+    <div class="summary-cards">
+        <div class="card">
+            <div class="card-number" id="totalRepos">--</div>
+            <div class="card-label">📦 项目总数</div>
+        </div>
+        <div class="card">
+            <div class="card-number" id="totalStars">--</div>
+            <div class="card-label">⭐ 总 Star 数</div>
+        </div>
+        <div class="card">
+            <div class="card-number" id="avgStars">--</div>
+            <div class="card-label">📊 平均 Stars</div>
+        </div>
+        <div class="card">
+            <div class="card-number" id="topProject">--</div>
+            <div class="card-label">🏆 最热门项目</div>
+        </div>
+    </div>
+
+    <!-- 图表区域：2列布局 -->
+    <div class="charts-grid">
+        <!-- 左上：Top 20 排行榜 -->
+        <div class="chart-container">
+            <h2>🏆 Top 20 热门项目</h2>
+            <div class="chart" id="chart-top20"></div>
+        </div>
+
+        <!-- 右上：项目类型分布 -->
+        <div class="chart-container">
+            <h2>🥧 项目类型分布</h2>
+            <div class="chart" id="chart-category"></div>
+        </div>
+
+        <!-- 左下：Stars vs Issues 散点图 -->
+        <div class="chart-container full-width">
+            <h2>📊 Stars vs Open Issues</h2>
+            <div class="chart" id="chart-scatter"></div>
+        </div>
+
+        <!-- 右下左：年份趋势 -->
+        <div class="chart-container">
+            <h2>📅 项目创建年份趋势</h2>
+            <div class="chart" id="chart-year"></div>
+        </div>
+
+        <!-- 右下右：许可证分布 -->
+        <div class="chart-container">
+            <h2>📜 开源许可证分布</h2>
+            <div class="chart" id="chart-license"></div>
+        </div>
+    </div>
+
+    <footer>
+        <p>西北工业大学 · Python 全栈项目练习 · 数据来自 GitHub API</p>
+    </footer>
+
+    <script>
+    // ==================== 获取数据并渲染 ====================
+    fetch('/api/stats')
+        .then(res => res.json())
+        .then(data => {
+            updateSummary(data);
+            renderTop20(data.top20);
+            renderCategory(data.categories);
+            renderScatter(data.scatter);
+            renderYearTrend(data.yearTrend);
+            renderLicense(data.licenses);
+        })
+        .catch(err => console.error('数据加载失败:', err));
+
+    // ==================== 概览卡片 ====================
+    function updateSummary(data) {
+        document.getElementById('totalRepos').textContent = data.totalRepos;
+        document.getElementById('totalStars').textContent = (data.totalStars / 10000).toFixed(1) + '万';
+        document.getElementById('avgStars').textContent = Math.round(data.totalStars / data.totalRepos).toLocaleString();
+        document.getElementById('topProject').textContent = data.top20[0].name.split('/')[1] || data.top20[0].name;
+    }
+
+    // ==================== 1. Top 20 排行榜（横向柱状图） ====================
+    function renderTop20(repos) {
+        const chart = echarts.init(document.getElementById('chart-top20'));
+        // 反转让最大的在顶部
+        const items = [...repos].reverse();
+        chart.setOption({
+            tooltip: {
+                trigger: 'axis',
+                axisPointer: { type: 'shadow' },
+                formatter: p => `<b>${items[p[0].dataIndex].name}</b><br/>
+                    ⭐ ${p[0].value.toLocaleString()} Stars<br/>
+                    🍴 ${items[p[0].dataIndex].forks.toLocaleString()} Forks`
+            },
+            grid: { left: 160, right: 40, top: 10, bottom: 10 },
+            xAxis: { type: 'value', axisLabel: { formatter: v => (v/1000).toFixed(0) + 'k' } },
+            yAxis: {
+                type: 'category',
+                data: items.map(r => r.name.split('/')[1] || r.name),
+                axisLabel: { fontSize: 11, width: 130, overflow: 'truncate' }
+            },
+            series: [{
+                type: 'bar',
+                data: items.map(r => r.stars),
+                itemStyle: {
+                    color: new echarts.graphic.LinearGradient(0, 0, 1, 0, [
+                        { offset: 0, color: '#667eea' },
+                        { offset: 1, color: '#764ba2' }
+                    ])
+                },
+                barMaxWidth: 20,
+            }]
+        });
+        window.addEventListener('resize', () => chart.resize());
+    }
+
+    // ==================== 2. 项目类型饼图 ====================
+    function renderCategory(categories) {
+        const chart = echarts.init(document.getElementById('chart-category'));
+        const data = Object.entries(categories)
+            .filter(([, v]) => v > 0)
+            .map(([k, v]) => ({ name: k, value: v }));
+        chart.setOption({
+            tooltip: { trigger: 'item', formatter: '{b}: {c} 个 ({d}%)' },
+            series: [{
+                type: 'pie',
+                radius: ['45%', '75%'],
+                center: ['50%', '55%'],
+                data: data,
+                emphasis: { itemStyle: { shadowBlur: 10, shadowColor: 'rgba(0,0,0,0.3)' } },
+                label: { formatter: '{b}\n{d}%' },
+                itemStyle: { borderRadius: 4, borderColor: '#1a1a2e', borderWidth: 2 }
+            }]
+        });
+        window.addEventListener('resize', () => chart.resize());
+    }
+
+    // ==================== 3. Stars vs Issues 散点图 ====================
+    function renderScatter(data) {
+        const chart = echarts.init(document.getElementById('chart-scatter'));
+        chart.setOption({
+            tooltip: {
+                formatter: p => {
+                    const d = data[p.dataIndex];
+                    return `<b>${d.name}</b><br/>⭐ ${d.stars.toLocaleString()}<br/>🐛 ${d.issues} Issues`;
+                }
+            },
+            grid: { left: 70, right: 30, top: 20, bottom: 50 },
+            xAxis: { name: 'Stars', type: 'log', nameLocation: 'center', nameGap: 30,
+                     axisLabel: { formatter: v => (v/1000).toFixed(0)+'k' } },
+            yAxis: { name: 'Open Issues', type: 'log', nameLocation: 'center', nameGap: 40 },
+            series: [{
+                type: 'scatter',
+                data: data.map(d => [d.stars, d.issues]),
+                symbolSize: d => Math.max(6, Math.min(30, Math.sqrt(d[0]) / 50)),
+                itemStyle: { color: '#4ecdc4', opacity: 0.7 },
+                emphasis: { itemStyle: { color: '#ff6b6b', opacity: 1 } }
+            }]
+        });
+        window.addEventListener('resize', () => chart.resize());
+    }
+
+    // ==================== 4. 年份趋势折线图 ====================
+    function renderYearTrend(data) {
+        const chart = echarts.init(document.getElementById('chart-year'));
+        chart.setOption({
+            tooltip: { trigger: 'axis' },
+            grid: { left: 50, right: 20, top: 20, bottom: 30 },
+            xAxis: { type: 'category', data: data.map(d => d.year), axisLabel: { rotate: 45 } },
+            yAxis: { type: 'value', name: '项目数' },
+            series: [{
+                type: 'line',
+                data: data.map(d => d.count),
+                smooth: true,
+                lineStyle: { color: '#667eea', width: 3 },
+                itemStyle: { color: '#667eea' },
+                areaStyle: {
+                    color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
+                        { offset: 0, color: 'rgba(102,126,234,0.4)' },
+                        { offset: 1, color: 'rgba(102,126,234,0.05)' }
+                    ])
+                }
+            }]
+        });
+        window.addEventListener('resize', () => chart.resize());
+    }
+
+    // ==================== 5. 许可证分布饼图 ====================
+    function renderLicense(data) {
+        const chart = echarts.init(document.getElementById('chart-license'));
+        chart.setOption({
+            tooltip: { trigger: 'item', formatter: '{b}: {c} 个 ({d}%)' },
+            series: [{
+                type: 'pie',
+                radius: ['40%', '70%'],
+                center: ['50%', '55%'],
+                data: data,
+                label: { formatter: '{b}\n{d}%', fontSize: 10 },
+                roseType: 'area',
+            }]
+        });
+        window.addEventListener('resize', () => chart.resize());
+    }
+    </script>
+</body>
+</html>

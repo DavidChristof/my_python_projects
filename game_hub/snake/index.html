@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <title>🐍 贪吃蛇 - Game Hub</title>
+    <link rel="stylesheet" href="../static/style.css">
+    <style>
+        body { display: flex; flex-direction: column; user-select: none; }
+        .game-wrapper { flex: 1; }
+    </style>
+</head>
+<body>
+    <nav class="navbar">
+        <a href="../index.html" class="back">← 返回首页</a>
+        <span class="logo">🐍 贪吃蛇</span>
+    </nav>
+    <div class="game-wrapper"><canvas id="game" width="420" height="460"></canvas></div>
+    <footer class="footer">← → ↑ ↓ 控制方向 &nbsp;|&nbsp; 空格重开 &nbsp;|&nbsp; Game Hub</footer>
+    <script>
+    const canvas = document.getElementById("game"), ctx = canvas.getContext("2d");
+    const COLS = 21, ROWS = 21, CELL = 20;
+    const W = COLS*CELL, H = ROWS*CELL;
+    const BOARD_X = (420-W)/2, BOARD_Y = (460-H)/2;
+
+    let snake = [], food = {}, dir = {x:1,y:0}, nextDir = {x:1,y:0};
+    let score = 0, playing = false, speed = 100, timer = null;
+
+    const ac = new (window.AudioContext||window.webkitAudioContext)();
+    function beep(f,d,t="square",v=0.06){
+        let o=ac.createOscillator(),g=ac.createGain();
+        o.type=t;o.frequency.setValueAtTime(f,ac.currentTime);
+        g.gain.setValueAtTime(v,ac.currentTime);
+        g.gain.exponentialRampToValueAtTime(0.001,ac.currentTime+d);
+        o.connect(g);g.connect(ac.destination);o.start();o.stop(ac.currentTime+d);
+    }
+
+    function spawnFood() {
+        while(true){
+            food={x:Math.floor(Math.random()*COLS),y:Math.floor(Math.random()*ROWS)};
+            if(!snake.some(s=>s.x===food.x&&s.y===food.y))break;
+        }
+    }
+
+    function init(){
+        snake=[{x:10,y:10},{x:9,y:10},{x:8,y:10}];
+        dir={x:1,y:0};nextDir={x:1,y:0};score=0;playing=true;
+        spawnFood();if(timer)clearInterval(timer);
+        timer=setInterval(tick,speed);
+    }
+
+    function tick(){
+        if(!playing)return;
+        dir={...nextDir};
+        let head={x:snake[0].x+dir.x,y:snake[0].y+dir.y};
+        if(head.x<0||head.x>=COLS||head.y<0||head.y>=ROWS){gameOver();return;}
+        if(snake.some(s=>s.x===head.x&&s.y===head.y)){gameOver();return;}
+        snake.unshift(head);
+        if(head.x===food.x&&head.y===food.y){
+            score+=10;spawnFood();beep(660,0.06);
+            if(speed>60){speed-=3;clearInterval(timer);timer=setInterval(tick,speed);}
+        }else{snake.pop();}
+    }
+
+    function gameOver(){playing=false;clearInterval(timer);beep(100,0.35,"sawtooth",0.1);}
+
+    document.addEventListener("keydown",e=>{
+        if(e.code==="Space"&&!playing){init();return;}
+        if(!playing)return;e.preventDefault();
+        let nd=nextDir;
+        if(e.code==="ArrowUp"&&dir.y!==1)nd={x:0,y:-1};
+        if(e.code==="ArrowDown"&&dir.y!==-1)nd={x:0,y:1};
+        if(e.code==="ArrowLeft"&&dir.x!==1)nd={x:-1,y:0};
+        if(e.code==="ArrowRight"&&dir.x!==-1)nd={x:1,y:0};
+        nextDir=nd;beep(440,0.03,"square",0.03);
+    });
+
+    function draw(){
+        ctx.fillStyle="#1a1a2e";ctx.fillRect(0,0,420,460);
+        ctx.fillStyle="#222240";
+        for(let r=0;r<ROWS;r++)for(let c=0;c<COLS;c++)
+            if((r+c)%2===0)ctx.fillRect(BOARD_X+c*CELL,BOARD_Y+r*CELL,CELL,CELL);
+        ctx.strokeStyle="#444";ctx.lineWidth=2;
+        ctx.strokeRect(BOARD_X,BOARD_Y,W,H);
+
+        ctx.fillStyle="#FF6B6B";ctx.font="20px sans-serif";ctx.textAlign="center";ctx.textBaseline="middle";
+        ctx.fillText("🍎",BOARD_X+food.x*CELL+CELL/2,BOARD_Y+food.y*CELL+CELL/2);
+
+        snake.forEach((s,i)=>{
+            let x=BOARD_X+s.x*CELL+1,y=BOARD_Y+s.y*CELL+1,sz=CELL-2;
+            ctx.fillStyle=i===0?"#4ECDC4":"#44B0A8";
+            ctx.beginPath();ctx.roundRect(x,y,sz,sz,5);ctx.fill();
+        });
+
+        ctx.fillStyle="#FFF";ctx.font="bold 22px Microsoft YaHei";ctx.textAlign="left";
+        ctx.fillText("🐍 "+score+" 分",15,35);
+
+        if(!playing&&snake.length>3){
+            ctx.fillStyle="rgba(0,0,0,0.6)";ctx.fillRect(0,0,420,460);
+            ctx.fillStyle="#FF6B6B";ctx.font="bold 36px Microsoft YaHei";ctx.textAlign="center";
+            ctx.fillText("游戏结束",210,200);
+            ctx.fillStyle="#FFF";ctx.font="20px Microsoft YaHei";
+            ctx.fillText("得分: "+score,210,240);
+            ctx.fillText("按空格键重新开始",210,275);
+        }
+        if(!playing&&snake.length<=3){
+            ctx.fillStyle="rgba(0,0,0,0.5)";ctx.fillRect(0,0,420,460);
+            ctx.fillStyle="#4ECDC4";ctx.font="bold 30px Microsoft YaHei";ctx.textAlign="center";
+            ctx.fillText("🐍 贪吃蛇",210,210);
+            ctx.fillText("按空格键开始",210,250);
+        }
+    }
+
+    init();playing=true;
+    function loop(){draw();requestAnimationFrame(loop);}
+    loop();
+    </script>
+</body>
+</html>

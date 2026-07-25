@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <title>🧱 俄罗斯方块 - Game Hub</title>
+    <link rel="stylesheet" href="../static/style.css">
+    <style>
+        body { display: flex; flex-direction: column; user-select: none; }
+        .game-wrapper { flex: 1; }
+    </style>
+</head>
+<body>
+    <nav class="navbar">
+        <a href="../index.html" class="back">← 返回首页</a>
+        <span class="logo">🧱 俄罗斯方块</span>
+    </nav>
+
+    <div class="game-wrapper">
+        <canvas id="game" width="450" height="600"></canvas>
+    </div>
+
+    <footer class="footer">← → 移动 &nbsp;|&nbsp; ↑ 旋转 &nbsp;|&nbsp; ↓ 硬降 &nbsp;|&nbsp; R 重开 &nbsp;|&nbsp; 西北工业大学 · Game Hub</footer>
+
+    <script src="game.js"></script>
+</body>
+</html>

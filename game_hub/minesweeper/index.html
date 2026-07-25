@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <title>💣 扫雷 - Game Hub</title>
+    <link rel="stylesheet" href="../static/style.css">
+    <style>
+        body { display:flex; flex-direction:column; user-select:none; }
+        .game-wrapper { flex:1; display:flex; flex-direction:column; align-items:center; padding:10px; }
+        .toolbar { display:flex; gap:20px; align-items:center; margin-bottom:10px; }
+        .toolbar button {
+            background:rgba(255,255,255,0.08); color:#ccc; border:1px solid rgba(255,255,255,0.15);
+            padding:8px 18px; border-radius:8px; cursor:pointer; font-size:15px; font-family:inherit;
+            transition:all 0.2s;
+        }
+        .toolbar button:hover { background:rgba(102,126,234,0.3); color:#fff; border-color:rgba(102,126,234,0.5); }
+        .toolbar button.active { background:rgba(102,126,234,0.5); color:#fff; border-color:#667eea; }
+        .info { color:#aaa; font-size:14px; display:flex; gap:20px; }
+        .info span { color:#FFD700; font-weight:bold; }
+    </style>
+</head>
+<body>
+    <nav class="navbar">
+        <a href="../index.html" class="back">← 返回首页</a>
+        <span class="logo">💣 扫雷</span>
+    </nav>
+
+    <div class="game-wrapper">
+        <div class="toolbar">
+            <button onclick="setDifficulty(9,10)" id="btn-easy" class="active">初级 9×9</button>
+            <button onclick="setDifficulty(16,40)" id="btn-mid">中级 16×16</button>
+            <button onclick="setDifficulty(22,80)" id="btn-hard">高级 22×22</button>
+            <span class="info">💣 <span id="mineCount">10</span> &nbsp; ⏱ <span id="timer">0</span>s</span>
+        </div>
+        <canvas id="game"></canvas>
+    </div>
+
+    <footer class="footer">左键揭开 &nbsp;|&nbsp; 右键标旗🚩 &nbsp;|&nbsp; Game Hub</footer>
+
+    <script>
+    const canvas = document.getElementById("game"), ctx = canvas.getContext("2d");
+    let ROWS=9, COLS=9, MINES=10, CELL=36;
+    let grid=[], revealed=[], flagged=[], gameOver=false, win=false, firstClick=true;
+    let mineLeft=MINES, timerSec=0, timerId=null;
+
+    // 数字颜色（经典扫雷配色）
+    const NUM_COLORS = ["","#00F","#0A0","#F00","#008","#800","#088","#000","#888"];
+
+    // ===== 音效 =====
+    const ac = new (window.AudioContext||window.webkitAudioContext)();
+    function beep(f,d,t="sine",v=0.07){
+        let o=ac.createOscillator(),g=ac.createGain();
+        o.type=t;o.frequency.setValueAtTime(f,ac.currentTime);
+        g.gain.setValueAtTime(v,ac.currentTime);
+        g.gain.exponentialRampToValueAtTime(0.001,ac.currentTime+d);
+        o.connect(g);g.connect(ac.destination);o.start();o.stop(ac.currentTime+d);
+    }
+
+    function init() {
+        grid = Array.from({length:ROWS},()=>Array(COLS).fill(0));
+        revealed = Array.from({length:ROWS},()=>Array(COLS).fill(false));
+        flagged = Array.from({length:ROWS},()=>Array(COLS).fill(false));
+        gameOver=false; win=false; firstClick=true; mineLeft=MINES;
+        timerSec=0; clearInterval(timerId); timerId=null;
+        document.getElementById("mineCount").textContent=mineLeft;
+        document.getElementById("timer").textContent="0";
+        canvas.width = COLS*CELL; canvas.height = ROWS*CELL;
+    }
+
+    function placeMines(safeR, safeC) {
+        let count=0;
+        while(count<MINES) {
+            let r=Math.floor(Math.random()*ROWS), c=Math.floor(Math.random()*COLS);
+            // 避开首次点击位置及其周围
+            if(Math.abs(r-safeR)<=1 && Math.abs(c-safeC)<=1) continue;
+            if(grid[r][c]!==-1) { grid[r][c]=-1; count++; }
+        }
+        // 计算数字
+        for(let r=0;r<ROWS;r++) for(let c=0;c<COLS;c++) {
+            if(grid[r][c]===-1) continue;
+            let n=0;
+            for(let dr=-1;dr<=1;dr++) for(let dc=-1;dc<=1;dc++) {
+                let nr=r+dr,nc=c+dc;
+                if(nr>=0&&nr<ROWS&&nc>=0&&nc<COLS&&grid[nr][nc]===-1) n++;
+            }
+            grid[r][c]=n;
+        }
+    }
+
+    function reveal(r,c) {
+        if(r<0||r>=ROWS||c<0||c>=COLS||revealed[r][c]||flagged[r][c]) return;
+        revealed[r][c]=true;
+        if(grid[r][c]===0) {
+            // 空格自动展开
+            for(let dr=-1;dr<=1;dr++) for(let dc=-1;dc<=1;dc++) reveal(r+dr,c+dc);
+        }
+    }
+
+    function checkWin() {
+        for(let r=0;r<ROWS;r++) for(let c=0;c<COLS;c++)
+            if(!revealed[r][c] && grid[r][c]!==-1) return false;
+        return true;
+    }
+
+    function draw() {
+        ctx.fillStyle="#1a1a2e"; ctx.fillRect(0,0,canvas.width,canvas.height);
+
+        for(let r=0;r<ROWS;r++) for(let c=0;c<COLS;c++) {
+            let x=c*CELL, y=r*CELL, sz=CELL-2;
+
+            if(revealed[r][c]) {
+                // 已揭开
+                ctx.fillStyle=(r+c)%2===0?"#c8d6c0":"#bccab0";
+                ctx.fillRect(x+1,y+1,sz,sz);
+                if(grid[r][c]===-1) {
+                    // 地雷
+                    ctx.fillStyle="#E04040";
+                    ctx.beginPath();ctx.arc(x+CELL/2,y+CELL/2,CELL/3,0,Math.PI*2);ctx.fill();
+                    ctx.fillStyle="#000";
+                    ctx.beginPath();ctx.arc(x+CELL/2,y+CELL/2,CELL/8,0,Math.PI*2);ctx.fill();
+                } else if(grid[r][c]>0) {
+                    ctx.fillStyle=NUM_COLORS[grid[r][c]]; ctx.font="bold 20px Microsoft YaHei";
+                    ctx.textAlign="center";ctx.textBaseline="middle";
+                    ctx.fillText(grid[r][c],x+CELL/2,y+CELL/2+1);
+                }
+            } else {
+                // 未揭开
+                ctx.fillStyle=(r+c)%2===0?"#5a8a3c":"#4a7a2c";
+                ctx.fillRect(x+1,y+1,sz,sz);
+                // 3D凸起效果
+                ctx.fillStyle="rgba(255,255,255,0.15)";
+                ctx.fillRect(x+1,y+1,sz,2); ctx.fillRect(x+1,y+1,2,sz);
+                ctx.fillStyle="rgba(0,0,0,0.15)";
+                ctx.fillRect(x+1,y+sz-1,sz,2); ctx.fillRect(x+sz-1,y+1,2,sz);
+
+                // 旗子
+                if(flagged[r][c]) {
+                    ctx.fillStyle="#F00"; ctx.font="22px sans-serif";
+                    ctx.textAlign="center";ctx.textBaseline="middle";
+                    ctx.fillText("🚩",x+CELL/2,y+CELL/2);
+                }
+            }
+
+            // 网格线
+            ctx.strokeStyle="#3a5a2c";ctx.lineWidth=0.5;
+            ctx.strokeRect(x,y,CELL,CELL);
+        }
+
+        // 游戏结束遮罩
+        if(gameOver||win) {
+            ctx.fillStyle="rgba(0,0,0,0.55)";ctx.fillRect(0,0,canvas.width,canvas.height);
+            ctx.fillStyle=win?"#4F0":"#FF3232";ctx.font="bold 36px Microsoft YaHei";
+            ctx.textAlign="center";
+            ctx.fillText(win?"🎉 你赢了！":"💥 踩到雷了！",canvas.width/2,canvas.height/2-10);
+            ctx.fillStyle="#FFF";ctx.font="18px Microsoft YaHei";
+            ctx.fillText("点击任意位置重新开始",canvas.width/2,canvas.height/2+30);
+        }
+    }
+
+    canvas.addEventListener("click",e=>{
+        if(gameOver||win){init();return;}
+        let rect=canvas.getBoundingClientRect();
+        let c=Math.floor((e.clientX-rect.left)/CELL), r=Math.floor((e.clientY-rect.top)/CELL);
+        if(r<0||r>=ROWS||c<0||c>=COLS||flagged[r][c]) return;
+
+        if(firstClick){placeMines(r,c);firstClick=false;timerId=setInterval(()=>{timerSec++;document.getElementById("timer").textContent=timerSec;},1000);}
+        if(grid[r][c]===-1){revealed[r][c]=true;gameOver=true;clearInterval(timerId);beep(100,0.4,"sawtooth",0.12);}
+        else{reveal(r,c);beep(500,0.04,"sine",0.05);}
+
+        if(checkWin()){win=true;clearInterval(timerId);beep(880,0.15);setTimeout(()=>beep(1100,0.12),150);}
+    });
+
+    canvas.addEventListener("contextmenu",e=>{
+        e.preventDefault();
+        if(gameOver||win) return;
+        let rect=canvas.getBoundingClientRect();
+        let c=Math.floor((e.clientX-rect.left)/CELL), r=Math.floor((e.clientY-rect.top)/CELL);
+        if(r<0||r>=ROWS||c<0||c>=COLS||revealed[r][c]) return;
+        flagged[r][c]=!flagged[r][c];
+        mineLeft+=flagged[r][c]?-1:1;
+        document.getElementById("mineCount").textContent=mineLeft;
+        beep(700,0.04,"square",0.05);
+    });
+
+    function setDifficulty(rows,mines) {
+        ROWS=COLS=rows; MINES=mines;
+        document.querySelectorAll(".toolbar button").forEach(b=>b.classList.remove("active"));
+        document.getElementById("btn-"+(rows===9?"easy":rows===16?"mid":"hard")).classList.add("active");
+        init();
+    }
+
+    init();
+    function loop(){draw();requestAnimationFrame(loop);}
+    loop();
+    </script>
+</body>
+</html>

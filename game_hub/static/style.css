@@ -1,0 +1,144 @@
+/* ==================== Game Hub 共享样式 ==================== */
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+body {
+    font-family: "Microsoft YaHei", "PingFang SC", sans-serif;
+    background: linear-gradient(135deg, #0f0c29 0%, #1a1a2e 50%, #16213e 100%);
+    color: #e0e0e0;
+    min-height: 100vh;
+}
+
+/* 导航栏 */
+.navbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 16px 40px;
+    background: rgba(255,255,255,0.03);
+    border-bottom: 1px solid rgba(255,255,255,0.08);
+}
+
+.navbar .logo {
+    font-size: 1.3rem;
+    font-weight: bold;
+    background: linear-gradient(135deg, #667eea, #764ba2);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    text-decoration: none;
+}
+
+.navbar .back {
+    color: #aaa;
+    text-decoration: none;
+    font-size: 0.9rem;
+    transition: color 0.2s;
+}
+.navbar .back:hover { color: #fff; }
+
+/* 主页 Hero */
+.hero {
+    text-align: center;
+    padding: 60px 20px 40px;
+}
+
+.hero h1 {
+    font-size: 2.5rem;
+    background: linear-gradient(135deg, #f093fb, #f5576c, #667eea);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    margin-bottom: 12px;
+}
+
+.hero p {
+    color: #888;
+    font-size: 1.1rem;
+}
+
+/* 游戏卡片网格 */
+.games-grid {
+    display: flex;
+    gap: 30px;
+    padding: 20px 40px 60px;
+    max-width: 900px;
+    margin: 0 auto;
+    flex-wrap: wrap;
+    justify-content: center;
+}
+
+.game-card {
+    flex: 1;
+    min-width: 280px;
+    max-width: 380px;
+    background: rgba(255,255,255,0.05);
+    border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 16px;
+    padding: 40px 30px;
+    text-align: center;
+    text-decoration: none;
+    color: inherit;
+    transition: transform 0.25s, box-shadow 0.25s, border-color 0.25s;
+    cursor: pointer;
+}
+
+.game-card:hover {
+    transform: translateY(-6px);
+    box-shadow: 0 12px 30px rgba(102,126,234,0.25);
+    border-color: rgba(102,126,234,0.4);
+}
+
+.game-card .icon {
+    font-size: 4rem;
+    margin-bottom: 16px;
+}
+
+.game-card h2 {
+    font-size: 1.4rem;
+    margin-bottom: 8px;
+    color: #fff;
+}
+
+.game-card .desc {
+    color: #888;
+    font-size: 0.9rem;
+    line-height: 1.5;
+}
+
+.game-card .tag {
+    display: inline-block;
+    margin-top: 14px;
+    padding: 4px 14px;
+    border-radius: 20px;
+    font-size: 0.8rem;
+    background: rgba(102,126,234,0.2);
+    color: #a0b4ff;
+}
+
+/* 游戏页面容器 */
+.game-wrapper {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 30px;
+}
+
+canvas {
+    border: 2px solid rgba(255,255,255,0.2);
+    border-radius: 8px;
+}
+
+/* 底部 */
+.footer {
+    text-align: center;
+    padding: 20px;
+    color: #555;
+    font-size: 0.85rem;
+    border-top: 1px solid rgba(255,255,255,0.06);
+}
+
+/* 响应式 */
+@media (max-width: 768px) {
+    .hero h1 { font-size: 1.8rem; }
+    .games-grid { padding: 20px 16px; }
+}

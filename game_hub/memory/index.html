@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <title>🧩 记忆翻牌 - Game Hub</title>
+    <link rel="stylesheet" href="../static/style.css">
+    <style>
+        body { display: flex; flex-direction: column; user-select: none; }
+        .game-wrapper { flex: 1; }
+    </style>
+</head>
+<body>
+    <nav class="navbar">
+        <a href="../index.html" class="back">← 返回首页</a>
+        <span class="logo">🧩 记忆翻牌</span>
+    </nav>
+    <div class="game-wrapper"><canvas id="game" width="440" height="520"></canvas></div>
+    <footer class="footer">点击卡片翻牌 &nbsp;|&nbsp; 找出所有配对 &nbsp;|&nbsp; Game Hub</footer>
+    <script>
+    const canvas = document.getElementById("game"), ctx = canvas.getContext("2d");
+    const ROWS = 4, COLS = 4, CARD_W = 90, CARD_H = 100, GAP = 10;
+    const BOARD_X = (440 - COLS*(CARD_W+GAP)+GAP)/2, BOARD_Y = 30;
+
+    // 8对emoji
+    const EMOJIS = ["🐶","🐱","🐸","🦊","🐻","🐼","🐨","🐯"];
+    let cards = [], flipped = [], matched = new Set(), moves = 0, locked = false;
+
+    // ===== 音效 =====
+    const ac = new (window.AudioContext||window.webkitAudioContext)();
+    function beep(f,d,t="sine",v=0.08){
+        let o=ac.createOscillator(),g=ac.createGain();
+        o.type=t;o.frequency.setValueAtTime(f,ac.currentTime);
+        g.gain.setValueAtTime(v,ac.currentTime);
+        g.gain.exponentialRampToValueAtTime(0.001,ac.currentTime+d);
+        o.connect(g);g.connect(ac.destination);o.start();o.stop(ac.currentTime+d);
+    }
+
+    function shuffle(arr) { for(let i=arr.length-1;i>0;i--){let j=Math.floor(Math.random()*(i+1));[arr[i],arr[j]]=[arr[j],arr[i]];} return arr; }
+
+    function init() {
+        let pairs = shuffle([...EMOJIS, ...EMOJIS]);
+        cards = [];
+        for(let r=0;r<ROWS;r++) for(let c=0;c<COLS;c++)
+            cards.push({row:r,col:c,emoji:pairs[r*COLS+c],flipped:false});
+        flipped=[]; matched.clear(); moves=0; locked=false;
+    }
+
+    canvas.addEventListener("click", e => {
+        if(locked) return;
+        let rect = canvas.getBoundingClientRect();
+        let mx = e.clientX - rect.left, my = e.clientY - rect.top;
+        for(let card of cards) {
+            let x = BOARD_X + card.col*(CARD_W+GAP), y = BOARD_Y + card.row*(CARD_H+GAP);
+            if(mx>=x && mx<=x+CARD_W && my>=y && my<=y+CARD_H && !card.flipped && !matched.has(card)) {
+                card.flipped = true; flipped.push(card);
+                beep(520,0.05,"sine",0.06);  // 🆕 翻牌音
+                if(flipped.length === 2) {
+                    moves++; locked=true;
+                    let [a,b] = flipped;
+                    if(a.emoji === b.emoji) {
+                        matched.add(a); matched.add(b); flipped=[]; locked=false;
+                        beep(880,0.12,"sine",0.08);  // 🆕 配对成功
+                    } else {
+                        setTimeout(()=>{a.flipped=false;b.flipped=false;flipped=[];locked=false;},600);
+                        setTimeout(()=>beep(200,0.1,"triangle",0.06),300);  // 🆕 不匹配
+                    }
+                }
+                break;
+            }
+        }
+    });
+
+    function draw() {
+        ctx.fillStyle = "#1a1a2e"; ctx.fillRect(0,0,440,520);
+        for(let card of cards) {
+            let x = BOARD_X + card.col*(CARD_W+GAP), y = BOARD_Y + card.row*(CARD_H+GAP);
+            let show = card.flipped || matched.has(card);
+            // 卡片背景
+            ctx.fillStyle = show ? "#FFF" : "#667eea";
+            ctx.beginPath(); ctx.roundRect(x,y,CARD_W,CARD_H,12); ctx.fill();
+            ctx.strokeStyle = show ? "#ddd" : "#5568d3"; ctx.lineWidth=2;
+            ctx.beginPath(); ctx.roundRect(x,y,CARD_W,CARD_H,12); ctx.stroke();
+
+            if(show) {
+                ctx.font = "44px sans-serif"; ctx.textAlign="center"; ctx.textBaseline="middle";
+                ctx.fillText(card.emoji, x+CARD_W/2, y+CARD_H/2+2);
+            } else {
+                ctx.fillStyle = "rgba(255,255,255,0.2)"; ctx.font = "28px sans-serif";
+                ctx.textAlign="center"; ctx.textBaseline="middle";
+                ctx.fillText("?", x+CARD_W/2, y+CARD_H/2+2);
+            }
+        }
+        ctx.fillStyle = "#FFF"; ctx.font = "bold 20px Microsoft YaHei"; ctx.textAlign = "left";
+        ctx.fillText("步数: " + moves, 20, 490);
+        ctx.fillText("配对: " + matched.size/2 + "/8", 200, 490);
+        if(matched.size === 16) {
+            ctx.fillStyle = "rgba(0,0,0,0.6)"; ctx.fillRect(0,0,440,520);
+            ctx.fillStyle = "#4F0"; ctx.font = "bold 36px Microsoft YaHei"; ctx.textAlign="center";
+            ctx.fillText("🎉 恭喜通关！", 220, 240);
+            ctx.fillStyle = "#FFF"; ctx.font = "20px Microsoft YaHei";
+            ctx.fillText("共用 " + moves + " 步", 220, 280);
+            ctx.fillText("点击任意位置重新开始", 220, 310);
+        }
+    }
+
+    canvas.addEventListener("click", function restart(e) {
+        if(matched.size === 16) init();
+    }, {once: false});
+
+    init();
+    setInterval(draw, 1000/30);
+    </script>
+</body>
+</html>

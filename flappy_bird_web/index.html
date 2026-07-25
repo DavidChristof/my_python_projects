@@ -1,0 +1,255 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <title>Flappy Bird - 网页完整版</title>
+    <style>
+        body {
+            margin: 0;
+            background: #1a1a2e;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            font-family: "Microsoft YaHei", sans-serif;
+            user-select: none;
+        }
+        canvas {
+            border: 2px solid rgba(255,255,255,0.2);
+            border-radius: 8px;
+        }
+        #info {
+            position: fixed;
+            bottom: 20px;
+            color: #888;
+            font-size: 14px;
+        }
+    </style>
+</head>
+<body>
+    <canvas id="game" width="400" height="600"></canvas>
+    <div id="info">按【空格键】操控 &nbsp;|&nbsp; 西北工业大学 · 网页游戏</div>
+
+    <script>
+    // ========== Flappy Bird 网页完整版 ==========
+    const canvas = document.getElementById("game");
+    const ctx = canvas.getContext("2d");
+
+    // 常量
+    const W = 400, H = 600;
+    const GROUND_H = 80;
+    const BIRD_X = 100, BIRD_R = 16;
+
+    // 物理
+    const GRAVITY = 0.45;
+    const JUMP = -7.5;
+
+    // 管道
+    const PIPE_W = 58, PIPE_GAP = 155, PIPE_SPEED = 3;
+    const PIPE_INTERVAL = 90, CAP_H = 25;
+
+    // 颜色
+    const SKY_TOP = "#B4DCFF", SKY_BOT = "#87CEEB";
+    const YELLOW = "#FFDC32", WHITE = "#FFF", GREEN = "#50B432";
+    const DARK_GREEN = "#3C8C1E", PIPE_CAP = "#32A028";
+    const GROUND_BROWN = "#DEB887", GROUND_DARK = "#A0825A";
+
+    // 状态
+    let bird = { y: 280, v: 0 };
+    let pipes = [];
+    let score = 0, frame = 0, gameOver = false;
+
+    // ========== 🎵 简易音效（Web Audio API，比 Python 版更简单！） ==========
+    const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+
+    function beep(freq, duration, type = "square", vol = 0.08) {
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.type = type;
+        osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
+        gain.gain.setValueAtTime(vol, audioCtx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + duration);
+        osc.connect(gain); gain.connect(audioCtx.destination);
+        osc.start(); osc.stop(audioCtx.currentTime + duration);
+    }
+
+    function playJump() { beep(400, 0.08, "square", 0.06); }
+    function playScore() { beep(880, 0.1, "square", 0.07); setTimeout(() => beep(1320, 0.08, "square", 0.05), 60); }
+    function playHit()  { beep(80, 0.3, "sawtooth", 0.12); }
+
+    // ========== 键盘 ==========
+    document.addEventListener("keydown", e => {
+        if (e.code === "Space") {
+            e.preventDefault();
+            if (gameOver) {
+                // 重新开始
+                bird = { y: 280, v: 0 };
+                pipes = []; score = 0; frame = 0; gameOver = false;
+            } else {
+                bird.v = JUMP;
+                playJump();
+            }
+        }
+    });
+
+    // ========== 碰撞检测 ==========
+    function hitTest() {
+        if (bird.y - BIRD_R <= 0 || bird.y + BIRD_R >= H - GROUND_H) return true;
+        for (let p of pipes) {
+            let half = PIPE_GAP / 2;
+            // 上方管道
+            if (BIRD_X + BIRD_R > p.x && BIRD_X - BIRD_R < p.x + PIPE_W) {
+                if (bird.y - BIRD_R < p.gapY - half || bird.y + BIRD_R > p.gapY + half) return true;
+            }
+        }
+        return false;
+    }
+
+    // ========== 绘制 ==========
+    function drawSky() {
+        let grad = ctx.createLinearGradient(0, 0, 0, H - GROUND_H);
+        grad.addColorStop(0, SKY_TOP); grad.addColorStop(1, SKY_BOT);
+        ctx.fillStyle = grad;
+        ctx.fillRect(0, 0, W, H - GROUND_H);
+    }
+
+    function drawClouds() {
+        ctx.fillStyle = "rgba(255,255,255,0.7)";
+        let cloud = (cx, cy) => {
+            ctx.beginPath(); ctx.arc(cx, cy, 18, 0, Math.PI*2); ctx.fill();
+            ctx.beginPath(); ctx.arc(cx+18, cy-8, 22, 0, Math.PI*2); ctx.fill();
+            ctx.beginPath(); ctx.arc(cx-8, cy+3, 14, 0, Math.PI*2); ctx.fill();
+        };
+        cloud((80 + frame*0.3) % (W+200) - 100, 60);
+        cloud((280 + frame*0.2) % (W+200) - 100, 110);
+        cloud((360 + frame*0.25) % (W+200) - 100, 40);
+    }
+
+    function drawBird() {
+        let cx = BIRD_X, cy = bird.y;
+        let tilt = Math.max(-0.5, Math.min(0.5, -bird.v * 0.1));
+        let wing = Math.sin(frame * 0.3) * 5;
+
+        ctx.save(); ctx.translate(cx, cy); ctx.rotate(tilt);
+
+        // 身体
+        ctx.fillStyle = YELLOW;
+        ctx.beginPath(); ctx.ellipse(0, 0, BIRD_R, BIRD_R-4, 0, 0, Math.PI*2); ctx.fill();
+
+        // 翅膀
+        ctx.fillStyle = "#FFC800";
+        ctx.beginPath(); ctx.ellipse(-2, 3, 10, 6, -0.3 + wing*0.03, 0, Math.PI*2); ctx.fill();
+
+        // 眼睛
+        ctx.fillStyle = WHITE;
+        ctx.beginPath(); ctx.arc(6, -4, 5, 0, Math.PI*2); ctx.fill();
+        ctx.fillStyle = "#000";
+        ctx.beginPath(); ctx.arc(8, -4, 2.5, 0, Math.PI*2); ctx.fill();
+
+        // 嘴巴
+        ctx.fillStyle = "#FF8C00";
+        ctx.beginPath(); ctx.moveTo(12, -1); ctx.lineTo(22, -1); ctx.lineTo(12, -6); ctx.fill();
+
+        ctx.restore();
+    }
+
+    function drawPipe(p) {
+        let half = PIPE_GAP / 2;
+        // 上管身
+        let topH = p.gapY - half - CAP_H;
+        if (topH > 0) {
+            ctx.fillStyle = GREEN;
+            ctx.fillRect(p.x, 0, PIPE_W, topH);
+        }
+        // 上管帽
+        ctx.fillStyle = PIPE_CAP;
+        ctx.fillRect(p.x - 3, p.gapY - half - CAP_H, PIPE_W + 6, CAP_H);
+        ctx.strokeStyle = DARK_GREEN; ctx.lineWidth = 2;
+        ctx.strokeRect(p.x - 3, p.gapY - half - CAP_H, PIPE_W + 6, CAP_H);
+
+        // 下管帽
+        ctx.fillStyle = PIPE_CAP;
+        ctx.fillRect(p.x - 3, p.gapY + half, PIPE_W + 6, CAP_H);
+        ctx.strokeStyle = DARK_GREEN;
+        ctx.strokeRect(p.x - 3, p.gapY + half, PIPE_W + 6, CAP_H);
+        // 下管身
+        let botY = p.gapY + half + CAP_H;
+        ctx.fillStyle = GREEN;
+        ctx.fillRect(p.x, botY, PIPE_W, H - botY);
+    }
+
+    function drawGround() {
+        let gy = H - GROUND_H;
+        ctx.fillStyle = GROUND_BROWN;
+        ctx.fillRect(0, gy, W, GROUND_H);
+        ctx.fillStyle = GROUND_DARK;
+        ctx.fillRect(0, gy, W, 4);
+        // 滚动条纹
+        let off = (-frame * PIPE_SPEED) % 40;
+        ctx.strokeStyle = GROUND_DARK; ctx.lineWidth = 2;
+        for (let x = -40 + off; x < W + 40; x += 40) {
+            ctx.beginPath(); ctx.moveTo(x, gy+15); ctx.lineTo(x+20, gy+15); ctx.stroke();
+        }
+    }
+
+    function drawUI() {
+        // 分数
+        ctx.fillStyle = "#FFF"; ctx.font = "bold 48px Microsoft YaHei";
+        ctx.textAlign = "center";
+        ctx.fillText(score, W/2, 55);
+
+        // 游戏结束
+        if (gameOver) {
+            ctx.fillStyle = "rgba(0,0,0,0.5)";
+            ctx.fillRect(0, 0, W, H);
+            ctx.fillStyle = "#FF3232"; ctx.font = "bold 36px Microsoft YaHei";
+            ctx.fillText("游戏结束", W/2, H/2 - 15);
+            ctx.fillStyle = "#FFF"; ctx.font = "18px Microsoft YaHei";
+            ctx.fillText("最终分数: " + score, W/2, H/2 + 25);
+            ctx.fillText("按空格键重新开始", W/2, H/2 + 55);
+        }
+    }
+
+    // ========== 游戏循环 ==========
+    function update() {
+        if (!gameOver) {
+            // 物理
+            bird.v += GRAVITY;
+            bird.y += bird.v;
+
+            // 管道生成
+            frame++;
+            if (frame % PIPE_INTERVAL === 0) {
+                let gapY = 120 + Math.random() * (H - GROUND_H - 240);
+                pipes.push({ x: W, gapY: gapY, scored: false });
+            }
+
+            // 管道移动 + 计分
+            for (let p of pipes) {
+                p.x -= PIPE_SPEED;
+                if (p.x + PIPE_W < BIRD_X && !p.scored) {
+                    score++;
+                    p.scored = true;
+                    playScore();
+                }
+            }
+
+            // 删除 + 碰撞
+            pipes = pipes.filter(p => p.x + PIPE_W > 0);
+            if (hitTest()) { gameOver = true; playHit(); }
+        }
+
+        // 绘制
+        drawSky();
+        drawClouds();
+        for (let p of pipes) drawPipe(p);
+        drawGround();
+        drawBird();
+        drawUI();
+    }
+
+    setInterval(update, 1000 / 60);
+    console.log("🎮 Flappy Bird 网页完整版已启动！");
+    </script>
+</body>
+</html>

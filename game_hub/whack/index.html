@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <title>🔨 打地鼠 - Game Hub</title>
+    <link rel="stylesheet" href="../static/style.css">
+    <style>
+        body { display: flex; flex-direction: column; user-select: none; cursor: pointer; }
+        .game-wrapper { flex: 1; }
+        canvas { cursor: url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' width='32' height='32'><text y='28' font-size='28'>🔨</text></svg>") 16 28, auto; }
+    </style>
+</head>
+<body>
+    <nav class="navbar">
+        <a href="../index.html" class="back">← 返回首页</a>
+        <span class="logo">🔨 打地鼠</span>
+    </nav>
+    <div class="game-wrapper"><canvas id="game" width="420" height="500"></canvas></div>
+    <footer class="footer">快速点击冒出来的地鼠！&nbsp;|&nbsp; Game Hub</footer>
+    <script>
+    const canvas = document.getElementById("game"), ctx = canvas.getContext("2d");
+    const ROWS = 3, COLS = 3, HOLE_R = 45, GAP_X = 140, GAP_Y = 140;
+    const START_X = 70, START_Y = 110;
+
+    let moles = [], score = 0, timeLeft = 30, playing = false, timer = null;
+
+    // ===== 音效 =====
+    const ac = new (window.AudioContext||window.webkitAudioContext)();
+    function beep(f,d,t="square",v=0.07){
+        let o=ac.createOscillator(),g=ac.createGain();
+        o.type=t;o.frequency.setValueAtTime(f,ac.currentTime);
+        g.gain.setValueAtTime(v,ac.currentTime);
+        g.gain.exponentialRampToValueAtTime(0.001,ac.currentTime+d);
+        o.connect(g);g.connect(ac.destination);o.start();o.stop(ac.currentTime+d);
+    }
+
+    function init() {
+        moles = Array.from({length:ROWS*COLS}, (_,i)=>({
+            row: Math.floor(i/COLS), col: i%COLS, active: false, timer: 0
+        }));
+        score = 0; timeLeft = 30; playing = false;
+    }
+
+    function startGame() {
+        if(playing) return;
+        init(); playing = true;
+        timer = setInterval(() => {
+            timeLeft -= 0.1;
+            if(timeLeft <= 0) { timeLeft = 0; playing = false; clearInterval(timer); beep(150,0.4,"sawtooth",0.1); }
+            // 随机激活地鼠
+            if(Math.random() < 0.06) {
+                let inactive = moles.filter(m=>!m.active);
+                if(inactive.length > 0) {
+                    let m = inactive[Math.floor(Math.random()*inactive.length)];
+                    m.active = true; m.timer = 20 + Math.random()*30;
+                }
+            }
+            // 地鼠缩回
+            moles.forEach(m => { if(m.active) { m.timer--; if(m.timer<=0) m.active=false; } });
+        }, 100);
+    }
+
+    canvas.addEventListener("click", e => {
+        if(!playing) { startGame(); return; }
+        let rect = canvas.getBoundingClientRect();
+        let mx = e.clientX - rect.left, my = e.clientY - rect.top;
+        for(let m of moles) {
+            if(!m.active) continue;
+            let cx = START_X + m.col*GAP_X, cy = START_Y + m.row*GAP_Y;
+            if(Math.hypot(mx-cx, my-cy) < HOLE_R) {
+                m.active = false; score += 10;
+                beep(800,0.06,"square",0.08);  // 🆕 打击音效
+                // 打击动画
+                let px = cx-HOLE_R, py = cy-HOLE_R;
+                ctx.fillStyle = "rgba(255,255,0,0.4)";
+                ctx.beginPath(); ctx.arc(cx,cy,HOLE_R+10,0,Math.PI*2); ctx.fill();
+            }
+        }
+    });
+
+    function draw() {
+        ctx.fillStyle = "#2d5016"; ctx.fillRect(0,0,420,500);
+
+        // 地洞
+        for(let m of moles) {
+            let cx = START_X + m.col*GAP_X, cy = START_Y + m.row*GAP_Y;
+            ctx.fillStyle = "#3a2510";
+            ctx.beginPath(); ctx.ellipse(cx, cy+8, HOLE_R-5, 18, 0, 0, Math.PI*2); ctx.fill();
+            ctx.fillStyle = "#1a0f05";
+            ctx.beginPath(); ctx.ellipse(cx, cy+8, HOLE_R-12, 12, 0, 0, Math.PI*2); ctx.fill();
+
+            // 地鼠
+            if(m.active) {
+                let offset = m.timer > 10 ? 0 : (10-m.timer)*3;
+                let my = cy - 25 + offset;
+                // 身体
+                ctx.fillStyle = "#8B6914";
+                ctx.beginPath(); ctx.arc(cx, my+15, HOLE_R-12, 0, Math.PI*2); ctx.fill();
+                // 脸
+                ctx.fillStyle = "#C49A3C";
+                ctx.beginPath(); ctx.arc(cx, my+8, HOLE_R-18, 0, Math.PI*2); ctx.fill();
+                // 眼睛
+                ctx.fillStyle = "#FFF";
+                ctx.beginPath(); ctx.arc(cx-10, my+4, 8, 0, Math.PI*2); ctx.fill();
+                ctx.beginPath(); ctx.arc(cx+10, my+4, 8, 0, Math.PI*2); ctx.fill();
+                ctx.fillStyle = "#000";
+                ctx.beginPath(); ctx.arc(cx-8, my+3, 4, 0, Math.PI*2); ctx.fill();
+                ctx.beginPath(); ctx.arc(cx+12, my+3, 4, 0, Math.PI*2); ctx.fill();
+                // 鼻子
+                ctx.fillStyle = "#FF6B6B";
+                ctx.beginPath(); ctx.arc(cx, my+10, 5, 0, Math.PI*2); ctx.fill();
+                // 牙齿
+                ctx.fillStyle = "#FFF";
+                ctx.fillRect(cx-4, my+14, 3, 5);
+                ctx.fillRect(cx+1, my+14, 3, 5);
+            }
+        }
+
+        // UI
+        ctx.fillStyle = "#FFF"; ctx.font = "bold 22px Microsoft YaHei"; ctx.textAlign = "left";
+        ctx.fillText("得分: " + score, 15, 40);
+        ctx.fillText("时间: " + Math.ceil(timeLeft) + "s", 300, 40);
+
+        if(!playing && timeLeft === 30) {
+            ctx.fillStyle = "rgba(0,0,0,0.5)"; ctx.fillRect(0,0,420,500);
+            ctx.fillStyle = "#FFF"; ctx.font = "bold 30px Microsoft YaHei"; ctx.textAlign = "center";
+            ctx.fillText("🔨 点击开始游戏！", 210, 250);
+        }
+        if(!playing && timeLeft === 0) {
+            ctx.fillStyle = "rgba(0,0,0,0.5)"; ctx.fillRect(0,0,420,500);
+            ctx.fillStyle = "#FFD700"; ctx.font = "bold 36px Microsoft YaHei"; ctx.textAlign = "center";
+            ctx.fillText("⏰ 时间到！", 210, 230);
+            ctx.fillStyle = "#FFF"; ctx.font = "22px Microsoft YaHei";
+            ctx.fillText("得分: " + score, 210, 270);
+            ctx.fillText("点击重新开始", 210, 305);
+        }
+    }
+
+    init();
+    setInterval(draw, 1000/30);
+    </script>
+</body>
+</html>

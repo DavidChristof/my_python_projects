@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <title>🐤 Flappy Bird - Game Hub</title>
+    <link rel="stylesheet" href="../static/style.css">
+    <style>
+        body { display: flex; flex-direction: column; user-select: none; }
+        .game-wrapper { flex: 1; }
+        .score-display {
+            position: absolute;
+            top: 90px;
+            left: 50%;
+            transform: translateX(-50%);
+            color: #fff;
+            font: bold 48px "Microsoft YaHei";
+            z-index: 10;
+            pointer-events: none;
+            text-shadow: 0 2px 8px rgba(0,0,0,0.5);
+        }
+    </style>
+</head>
+<body>
+    <nav class="navbar">
+        <a href="../index.html" class="back">← 返回首页</a>
+        <span class="logo">🐤 Flappy Bird</span>
+    </nav>
+
+    <div class="game-wrapper">
+        <canvas id="game" width="400" height="600"></canvas>
+    </div>
+
+    <footer class="footer">按【空格键】操控 &nbsp;|&nbsp; 西北工业大学 · Game Hub</footer>
+
+    <script src="game.js"></script>
+</body>
+</html>

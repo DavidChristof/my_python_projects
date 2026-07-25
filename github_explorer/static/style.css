@@ -1,0 +1,139 @@
+/* ==================== 全局 ==================== */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: "Microsoft YaHei", "PingFang SC", sans-serif;
+    background: linear-gradient(135deg, #0f0c29 0%, #1a1a2e 50%, #16213e 100%);
+    color: #e0e0e0;
+    min-height: 100vh;
+}
+
+/* ==================== 顶部标题 ==================== */
+header {
+    text-align: center;
+    padding: 40px 20px 20px;
+    background: rgba(255, 255, 255, 0.03);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+header h1 {
+    font-size: 2rem;
+    background: linear-gradient(135deg, #667eea, #764ba2, #f093fb);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    margin-bottom: 8px;
+}
+
+header p {
+    color: #888;
+    font-size: 0.9rem;
+}
+
+/* ==================== 概览卡片 ==================== */
+.summary-cards {
+    display: flex;
+    gap: 20px;
+    padding: 30px 40px;
+    max-width: 1200px;
+    margin: 0 auto;
+    flex-wrap: wrap;
+}
+
+.card {
+    flex: 1;
+    min-width: 180px;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 12px;
+    padding: 24px;
+    text-align: center;
+    backdrop-filter: blur(10px);
+    transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.card:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 8px 25px rgba(102, 126, 234, 0.2);
+}
+
+.card-number {
+    font-size: 2rem;
+    font-weight: bold;
+    background: linear-gradient(135deg, #667eea, #764ba2);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+
+.card-label {
+    margin-top: 8px;
+    color: #aaa;
+    font-size: 0.9rem;
+}
+
+/* ==================== 图表网格 ==================== */
+.charts-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 24px;
+    padding: 0 40px 40px;
+    max-width: 1200px;
+    margin: 0 auto;
+}
+
+.chart-container {
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 14px;
+    padding: 20px;
+}
+
+.chart-container.full-width {
+    grid-column: 1 / -1;
+}
+
+.chart-container h2 {
+    font-size: 1.1rem;
+    font-weight: normal;
+    color: #ccc;
+    margin-bottom: 12px;
+    padding-left: 4px;
+}
+
+.chart {
+    width: 100%;
+    height: 380px;
+}
+
+.chart-container.full-width .chart {
+    height: 420px;
+}
+
+/* ==================== 底部 ==================== */
+footer {
+    text-align: center;
+    padding: 20px;
+    color: #555;
+    font-size: 0.85rem;
+    border-top: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+/* ==================== 响应式 ==================== */
+@media (max-width: 768px) {
+    .charts-grid {
+        grid-template-columns: 1fr;
+        padding: 0 16px 20px;
+    }
+    .summary-cards {
+        padding: 20px 16px;
+        gap: 12px;
+    }
+    .card-number {
+        font-size: 1.5rem;
+    }
+}
