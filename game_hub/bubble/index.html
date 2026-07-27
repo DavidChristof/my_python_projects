@@ -129,7 +129,7 @@
         ctx.save();ctx.translate(ux,uy);
         if(imgUltraman.complete&&imgUltraman.naturalWidth>0){
             let iw=imgUltraman.naturalWidth,ih=imgUltraman.naturalHeight;
-            let scale=Math.min(100/iw,140/ih);
+            let scale=Math.min(200/iw,280/ih);
             ctx.drawImage(imgUltraman,-iw*scale/2,-ih*scale,iw*scale,ih*scale);
         }else{
         ctx.fillStyle="#C0C0C0";ctx.beginPath();ctx.roundRect(-22,-60,44,80,10);ctx.fill();
@@ -148,7 +148,7 @@
         ctx.save();ctx.translate(mx,my);
         if(imgMonsters[monsterType].complete&&imgMonsters[monsterType].naturalWidth>0){
             let iw=imgMonsters[monsterType].naturalWidth,ih=imgMonsters[monsterType].naturalHeight;
-            let scale=Math.min(110/iw,150/ih);
+            let scale=Math.min(200/iw,280/ih);
             ctx.drawImage(imgMonsters[monsterType],-iw*scale/2,-ih*scale,iw*scale,ih*scale);
         }else{
         ctx.fillStyle=mc;ctx.fillRect(-30,-10,14,40);ctx.fillRect(-4,-10,14,40);ctx.fillRect(14,-10,14,40);
