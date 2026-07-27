@@ -73,22 +73,42 @@
     function clearCanvas(){ctx.fillStyle="#FFF";ctx.fillRect(0,0,680,460);strokes=[];}
     function undoStroke(){strokes.pop();redrawAll();}
 
-    // ===== 颜料桶（Flood Fill 栈算法） =====
+    // ===== 颜料桶（扫描线 Flood Fill，不卡顿） =====
     function floodFill(sx,sy,fillColor){
         let imgData=ctx.getImageData(0,0,680,460);
         let data=imgData.data,w=680,h=460;
-        let idx=(sy*w+sx)*4;
-        let oldR=data[idx],oldG=data[idx+1],oldB=data[idx+2],oldA=data[idx+3];
-        fillColor=hexToRgb(fillColor);
-        if(oldR===fillColor.r&&oldG===fillColor.g&&oldB===fillColor.b)return;
-        let stack=[[sx,sy]];
-        while(stack.length>0){
-            let [x,y]=stack.pop();
-            let i=(y*w+x)*4;
+        let i=(sy*w+sx)*4;
+        let oR=data[i],oG=data[i+1],oB=data[i+2];
+        let fc=hexToRgb(fillColor);
+        if(oR===fc.r&&oG===fc.g&&oB===fc.b)return;
+
+        let stack=[[sx,sy]],maxIter=150000,iter=0;
+        while(stack.length>0&&iter<maxIter){
+            let [x,y]=stack.pop();iter++;
             if(x<0||x>=w||y<0||y>=h)continue;
-            if(data[i]!==oldR||data[i+1]!==oldG||data[i+2]!==oldB||data[i+3]!==oldA)continue;
-            data[i]=fillColor.r;data[i+1]=fillColor.g;data[i+2]=fillColor.b;data[i+3]=255;
-            stack.push([x+1,y],[x-1,y],[x,y+1],[x,y-1]);
+            let idx=(y*w+x)*4;
+
+            // 找该行左右边界
+            let L=x,R=x;
+            while(L>0&&data[((y)*w+L-1)*4]===oR&&data[((y)*w+L-1)*4+1]===oG&&data[((y)*w+L-1)*4+2]===oB)L--;
+            while(R<w-1&&data[((y)*w+R+1)*4]===oR&&data[((y)*w+R+1)*4+1]===oG&&data[((y)*w+R+1)*4+2]===oB)R++;
+
+            // 填充该行
+            for(let xx=L;xx<=R;xx++){
+                let ii=(y*w+xx)*4;data[ii]=fc.r;data[ii+1]=fc.g;data[ii+2]=fc.b;data[ii+3]=255;
+            }
+
+            // 扫描上下行找新种子
+            for(let yy=y-1;yy<=y+1;yy+=2){
+                if(yy<0||yy>=h)continue;
+                let xx=L;
+                while(xx<=R){
+                    while(xx<=R&&data[(yy*w+xx)*4]===fc.r&&data[(yy*w+xx)*4+1]===fc.g&&data[(yy*w+xx)*4+2]===fc.b)xx++;
+                    if(xx>R)break;
+                    if(data[(yy*w+xx)*4]===oR&&data[(yy*w+xx)*4+1]===oG&&data[(yy*w+xx)*4+2]===oB){stack.push([xx,yy])}
+                    xx++;
+                }
+            }
         }
         ctx.putImageData(imgData,0,0);
     }
