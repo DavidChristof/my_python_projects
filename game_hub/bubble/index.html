@@ -2,29 +2,65 @@
 <html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
-    <title>🎈 戳泡泡 - Game Hub</title>
+    <title>⚡ 奥特曼算术 - Game Hub</title>
     <link rel="stylesheet" href="../static/style.css">
     <style>
-        body { display:flex; flex-direction:column; user-select:none; cursor:pointer; overflow:hidden; }
-        .game-wrapper { flex:1; }
+        body{display:flex;flex-direction:column;user-select:none;background:#0a0a1a}
+        .game-wrapper{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center}
+        .battle-area{position:relative;width:680px;height:420px}
+        canvas{display:block;border:2px solid rgba(255,255,255,0.12);border-radius:12px}
+        .quiz-box{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);
+            background:rgba(0,0,0,0.85);border:2px solid rgba(255,255,100,0.4);border-radius:14px;
+            padding:20px 28px;text-align:center;z-index:10}
+        .quiz-box .question{color:#FFD700;font-size:30px;font-weight:bold;margin-bottom:12px}
+        .quiz-box input{width:90px;height:38px;font-size:22px;text-align:center;border-radius:8px;
+            border:2px solid #FFD700;background:#1a1a2e;color:#FFF;outline:none}
+        .quiz-box button{display:block;margin:10px auto 0;padding:8px 26px;font-size:16px;
+            background:#667eea;color:#fff;border:none;border-radius:8px;cursor:pointer;font-family:inherit}
+        .quiz-box button:hover{background:#764ba2}
+        .difficulty{display:flex;gap:6px;margin-bottom:8px}
+        .difficulty button{background:rgba(255,255,255,0.08);color:#aaa;border:1px solid rgba(255,255,255,0.15);
+            padding:5px 12px;border-radius:6px;cursor:pointer;font-size:12px;font-family:inherit}
+        .difficulty button.active{background:rgba(102,126,234,0.5);color:#fff;border-color:#667eea}
     </style>
 </head>
 <body>
     <nav class="navbar">
         <a href="../index.html" class="back">← 返回首页</a>
-        <span class="logo">🎈 戳泡泡</span>
+        <span class="logo">⚡ 奥特曼大战怪兽</span>
     </nav>
-    <div class="game-wrapper"><canvas id="game" width="480" height="620"></canvas></div>
-    <footer class="footer">点击泡泡戳破它！&nbsp;|&nbsp; 适合小朋友 &nbsp;|&nbsp; Game Hub</footer>
+    <div class="game-wrapper">
+        <div class="battle-area">
+            <canvas id="game" width="680" height="420"></canvas>
+            <div class="quiz-box" id="quizBox">
+                <div class="difficulty">
+                    <button onclick="setLevel(0)" id="lvl-easy" class="active">10以内</button>
+                    <button onclick="setLevel(1)" id="lvl-mid">20以内</button>
+                    <button onclick="setLevel(2)" id="lvl-hard">乘法</button>
+                </div>
+                <div class="question" id="question">3 + 5 = ?</div>
+                <input type="number" id="answer" placeholder="?" autofocus>
+                <button onclick="submitAnswer()">⚡ 发射光线！</button>
+            </div>
+        </div>
+    </div>
+    <footer class="footer">答对算术题攻击怪兽 &nbsp;|&nbsp; 击败怪兽赢取胜利 &nbsp;|&nbsp; Game Hub</footer>
     <script>
     const canvas=document.getElementById("game"),ctx=canvas.getContext("2d");
-    const W=480,H=620, COLORS=["#FF6B6B","#4ECDC4","#FFE66D","#A78BFA","#FB923C","#34D399","#F472B6","#60A5FA"];
+    const W=680,H=420,ux=140,uy=H-130,mx=W-140,my=H-140;
 
-    let bubbles=[], score=0, combo=0, comboTimer=0;
-    let particles=[];
+    let level=0,monsterHP=5,monsterMaxHP=5,monsterType=0;
+    let score=0,combo=0,animTimer=0,animText="";
 
-    const ac=new (window.AudioContext||window.webkitAudioContext)();
-    function beep(f,d,t="sine",v=0.08){
+    const MONSTERS=[
+        {name:"巴尔坦星人",color:"#C084FC",hp:5},
+        {name:"哥莫拉",color:"#F97316",hp:8},
+        {name:"金古桥",color:"#94A3B8",hp:12},
+        {name:"杰顿",color:"#FBBF24",hp:16},
+    ];
+
+    const ac=new(window.AudioContext||window.webkitAudioContext)();
+    function beep(f,d,t="square",v=0.07){
         let o=ac.createOscillator(),g=ac.createGain();
         o.type=t;o.frequency.setValueAtTime(f,ac.currentTime);
         g.gain.setValueAtTime(v,ac.currentTime);
@@ -32,92 +68,109 @@
         o.connect(g);g.connect(ac.destination);o.start();o.stop(ac.currentTime+d);
     }
 
-    function spawnBubble(){
-        if(bubbles.length>25) return;
-        let r=20+Math.random()*35;
-        bubbles.push({
-            x:r+Math.random()*(W-2*r), y:H+r, r:r,
-            color:COLORS[Math.floor(Math.random()*COLORS.length)],
-            vx:(Math.random()-0.5)*0.8, vy:-(1+Math.random()*2.5),
-            life:200+Math.random()*100
-        });
+    function genQuestion(){
+        let a,b,op,result;
+        if(level===0){a=1+Math.floor(Math.random()*9);b=1+Math.floor(Math.random()*9);
+            op=Math.random()<0.5?"+":"-";if(op==="-"&&a<b)[a,b]=[b,a];result=op==="+"?a+b:a-b}
+        else if(level===1){a=5+Math.floor(Math.random()*15);b=1+Math.floor(Math.random()*15);
+            op=Math.random()<0.5?"+":"-";if(op==="-"&&a<b)[a,b]=[b,a];result=op==="+"?a+b:a-b}
+        else{a=2+Math.floor(Math.random()*8);b=2+Math.floor(Math.random()*8);op="×";result=a*b}
+        document.getElementById("question").textContent=a+" "+op+" "+b+" = ?";
+        document.getElementById("answer").value="";
+        document.getElementById("answer").dataset.expect=result;
     }
 
-    canvas.addEventListener("click",e=>{
-        let rect=canvas.getBoundingClientRect();
-        let mx=e.clientX-rect.left, my=e.clientY-rect.top;
-        for(let i=bubbles.length-1;i>=0;i--){
-            let b=bubbles[i];
-            if(Math.hypot(mx-b.x,my-b.y)<b.r+5){
-                // 粒子爆炸
-                for(let j=0;j<12;j++){
-                    let angle=Math.random()*Math.PI*2, spd=2+Math.random()*6;
-                    particles.push({x:b.x,y:b.y,vx:Math.cos(angle)*spd,vy:Math.sin(angle)*spd,
-                        color:b.color,life:15+Math.random()*15,r:2+Math.random()*4});
-                }
-                bubbles.splice(i,1);
-                combo++;comboTimer=40;
-                let pts=combo>=5?combo*3:1;
-                score+=pts;
-                // 音效：连击越多音调越高
-                beep(300+combo*100,0.06,"sine",0.06);
-                break;
-            }
-        }
-    });
+    function setLevel(l){level=l;initGame();
+        document.querySelectorAll(".difficulty button").forEach(b=>b.classList.remove("active"));
+        document.getElementById("lvl-"+(l===0?"easy":l===1?"mid":"hard")).classList.add("active");
+    }
+
+    function submitAnswer(){
+        if(animTimer>0||monsterHP<=0)return;
+        let input=document.getElementById("answer"),user=parseInt(input.value);
+        let expect=parseInt(input.dataset.expect);
+        if(isNaN(user))return;
+        if(user===expect){
+            monsterHP--;combo++;score+=10+combo*2;
+            animTimer=25;animText="🎯 -"+(1+combo)+"HP!";
+            beep(880,0.06);if(combo>=3)beep(1100,0.05);
+            if(monsterHP<=0){score+=50;animText="💥 击败 "+MONSTERS[monsterType].name+"!";
+                beep(660,0.1);setTimeout(()=>beep(880,0.15),120);setTimeout(nextMonster,1500);}
+        }else{combo=0;animTimer=20;animText="😱 打偏了!";beep(150,0.25,"sawtooth",0.08)}
+        genQuestion();input.value="";input.focus();
+    }
+
+    function nextMonster(){monsterType=Math.min(monsterType+1,MONSTERS.length-1);
+        let m=MONSTERS[monsterType];monsterHP=m.hp;monsterMaxHP=m.hp;
+        animTimer=0;animText="⚡ "+m.name+" 出现了！";genQuestion()}
+
+    function initGame(){monsterType=0;let m=MONSTERS[0];
+        monsterHP=m.hp;monsterMaxHP=m.hp;score=0;combo=0;animTimer=0;animText="";
+        genQuestion();document.getElementById("answer").focus()}
+
+    document.getElementById("answer").addEventListener("keydown",e=>{if(e.key==="Enter")submitAnswer()});
 
     function draw(){
-        ctx.fillStyle="#1a1a3e";
-        let grad=ctx.createLinearGradient(0,0,0,H);
-        grad.addColorStop(0,"#0f0c29");grad.addColorStop(0.5,"#1a1a3e");grad.addColorStop(1,"#16213e");
-        ctx.fillStyle=grad;ctx.fillRect(0,0,W,H);
+        ctx.fillStyle="#0a0a1a";ctx.fillRect(0,0,W,H);
+        ctx.fillStyle="#1a1a2e";ctx.fillRect(0,H-80,W,80);
+        ctx.fillStyle="#333";ctx.fillRect(0,H-80,W,2);
 
-        // 泡泡
-        for(let b of bubbles){
-            // 光泽
-            let g=ctx.createRadialGradient(b.x-b.r*0.3,b.y-b.r*0.3,b.r*0.1,b.x,b.y,b.r);
-            g.addColorStop(0,"rgba(255,255,255,0.5)");g.addColorStop(0.6,b.color);g.addColorStop(1,"rgba(0,0,0,0.2)");
-            ctx.fillStyle=g;ctx.beginPath();ctx.arc(b.x,b.y,b.r,0,Math.PI*2);ctx.fill();
-            ctx.strokeStyle="rgba(255,255,255,0.2)";ctx.lineWidth=1.5;
-            ctx.stroke();
-            // 高光点
-            ctx.fillStyle="rgba(255,255,255,0.6)";
-            ctx.beginPath();ctx.arc(b.x-b.r*0.25,b.y-b.r*0.3,b.r*0.15,0,Math.PI*2);ctx.fill();
+        // === 奥特曼 ===
+        ctx.save();ctx.translate(ux,uy);
+        ctx.fillStyle="#C0C0C0";ctx.beginPath();ctx.roundRect(-22,-60,44,80,10);ctx.fill();
+        ctx.fillStyle="#E04040";ctx.fillRect(-22,-20,44,8);ctx.fillRect(-16,-10,32,8);
+        ctx.fillStyle="#D0D0D0";ctx.beginPath();ctx.arc(0,-78,22,0,Math.PI*2);ctx.fill();
+        ctx.fillStyle="#FFD700";ctx.beginPath();ctx.ellipse(-7,-82,7,9,0,0,Math.PI*2);ctx.fill();
+        ctx.beginPath();ctx.ellipse(7,-82,7,9,0,0,Math.PI*2);ctx.fill();
+        ctx.fillStyle="#000";ctx.beginPath();ctx.arc(-7,-84,3,0,Math.PI*2);ctx.fill();
+        ctx.beginPath();ctx.arc(7,-84,3,0,Math.PI*2);ctx.fill();
+        if(animTimer>0&&!animText.includes("打偏")){ctx.fillStyle="#00F";ctx.beginPath();ctx.arc(0,-95,6,0,Math.PI*2);ctx.fill()}
+        ctx.restore();
+
+        // === 怪兽 ===
+        let mc=MONSTERS[monsterType].color;
+        ctx.save();ctx.translate(mx,my);
+        ctx.fillStyle=mc;ctx.fillRect(-30,-10,14,40);ctx.fillRect(-4,-10,14,40);ctx.fillRect(14,-10,14,40);
+        ctx.fillStyle=mc;ctx.beginPath();ctx.roundRect(-26,-70,52,65,8);ctx.fill();
+        ctx.fillStyle="rgba(255,255,255,0.2)";ctx.beginPath();ctx.ellipse(0,-35,16,22,0,0,Math.PI*2);ctx.fill();
+        ctx.fillStyle=mc;ctx.beginPath();ctx.arc(0,-95,28,0,Math.PI*2);ctx.fill();
+        ctx.fillStyle="#FFF";ctx.beginPath();ctx.arc(-10,-100,9,0,Math.PI*2);ctx.fill();
+        ctx.beginPath();ctx.arc(10,-100,9,0,Math.PI*2);ctx.fill();
+        ctx.fillStyle="#F00";ctx.beginPath();ctx.arc(-8,-100,5,0,Math.PI*2);ctx.fill();
+        ctx.beginPath();ctx.arc(12,-100,5,0,Math.PI*2);ctx.fill();
+        ctx.fillStyle="#000";ctx.beginPath();ctx.arc(0,-85,10,0,Math.PI);ctx.fill();
+        if(animTimer>0&&!animText.includes("打偏")&&!animText.includes("出现")){
+            ctx.fillStyle="rgba(255,0,0,0.3)";ctx.fillRect(-50,-120,100,140)}
+        ctx.restore();
+
+        // 光线特效
+        if(animTimer>0&&!animText.includes("打偏")&&!animText.includes("出现")){
+            ctx.strokeStyle="#FFD700";ctx.lineWidth=3+Math.random()*2;
+            ctx.beginPath();ctx.moveTo(ux+20,uy-60);ctx.lineTo(mx-20+(Math.random()-0.5)*30,my-60+(Math.random()-0.5)*30);ctx.stroke();
+            for(let i=0;i<5;i++){let px=ux+20+(mx-ux-40)*Math.random();
+                ctx.fillStyle="#FFD700";ctx.beginPath();ctx.arc(px,uy-60+(Math.random()-0.5)*20,2+Math.random()*2,0,Math.PI*2);ctx.fill()}
         }
 
-        // 粒子
-        for(let p of particles){
-            ctx.fillStyle=p.color.replace(")","")+","+p.life/30+")";
-            ctx.beginPath();ctx.arc(p.x,p.y,p.r,0,Math.PI*2);ctx.fill();
-        }
+        // 血条
+        ctx.fillStyle="#333";ctx.fillRect(15,15,80,14);
+        ctx.fillStyle="#4ECDC4";ctx.fillRect(15,15,80,14);
+        ctx.fillStyle="#FFF";ctx.font="bold 12px Microsoft YaHei";ctx.fillText("奥特曼",18,40);
+        ctx.fillStyle="#333";ctx.fillRect(W-95,15,80,14);
+        let r=monsterHP/monsterMaxHP;
+        ctx.fillStyle=r>0.5?"#4F0":r>0.25?"#FF0":"#F00";
+        ctx.fillRect(W-95,15,80*r,14);
+        ctx.fillStyle="#FFF";ctx.textAlign="right";ctx.fillText(MONSTERS[monsterType].name,W-18,40);
 
-        // 连击显示
-        if(combo>=3&&comboTimer>0){
-            ctx.fillStyle="rgba(255,255,100,"+comboTimer/40+")";ctx.font="bold 40px Microsoft YaHei";
-            ctx.textAlign="center";
-            ctx.fillText("🔥 x"+combo+" 连击！",W/2,H/2);
-        }
-
-        ctx.fillStyle="#FFF";ctx.font="bold 20px Microsoft YaHei";ctx.textAlign="left";
-        ctx.fillText("💥 "+score,15,35);
-        ctx.font="13px Microsoft YaHei";ctx.fillStyle="rgba(255,255,255,0.4)";
-        ctx.fillText("连击5次以上得分翻倍！",15,55);
+        ctx.textAlign="center";
+        if(animTimer>0){animTimer--;
+            ctx.fillStyle="#FFF";ctx.font="bold 22px Microsoft YaHei";ctx.fillText(animText,W/2,80)}
+        ctx.fillStyle="#FFD700";ctx.font="16px Microsoft YaHei";ctx.fillText("得分: "+score,W/2,105);
+        if(combo>=2){ctx.fillStyle="#FF6B6B";ctx.font="bold 18px Microsoft YaHei";ctx.fillText("🔥 "+combo+"连击!",W/2,125)}
+        ctx.textAlign="left";
+        requestAnimationFrame(draw);
     }
 
-    function update(){
-        // 生成泡泡
-        if(Math.random()<0.03) spawnBubble();
-        for(let b of bubbles){b.x+=b.vx;b.y+=b.vy;b.life--;}
-        bubbles=bubbles.filter(b=>b.life>0&&b.y+b.r>0&&b.x+b.r>0&&b.x-b.r<W);
-
-        for(let p of particles){p.x+=p.vx;p.y+=p.vy;p.vy+=0.1;p.life--;}
-        particles=particles.filter(p=>p.life>0);
-
-        if(comboTimer>0)comboTimer--;else combo=0;
-    }
-
-    function loop(){update();draw();requestAnimationFrame(loop);}
-    loop();
+    initGame();draw();
     </script>
 </body>
 </html>
