@@ -63,6 +63,7 @@
     const imgUltraman=new Image();imgUltraman.src="images/ultraman.png";
     const imgMonsters=MONSTERS.map((_,i)=>{let img=new Image();img.src="images/monster_"+i+".png";return img});
     const imgBg=new Image();imgBg.src="images/bg.png";
+    let bgLoaded=false;imgBg.onload=()=>{bgLoaded=true};
     // 检查图片是否加载成功的简单标记
     let imgsReady=false;
     imgUltraman.onload=()=>{imgsReady=true};
@@ -120,6 +121,7 @@
 
     function draw(){
         ctx.fillStyle="#0a0a1a";ctx.fillRect(0,0,W,H);
+        if(bgLoaded){ctx.drawImage(imgBg,0,0,W,H-80)}
         ctx.fillStyle="#1a1a2e";ctx.fillRect(0,H-80,W,80);
         ctx.fillStyle="#333";ctx.fillRect(0,H-80,W,2);
 
