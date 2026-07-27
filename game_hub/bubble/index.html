@@ -164,8 +164,8 @@
         ctx.textAlign="center";
         if(animTimer>0){animTimer--;
             ctx.fillStyle="#FFF";ctx.font="bold 22px Microsoft YaHei";ctx.fillText(animText,W/2,80)}
-        ctx.fillStyle="#FFD700";ctx.font="16px Microsoft YaHei";ctx.fillText("得分: "+score,W/2,105);
-        if(combo>=2){ctx.fillStyle="#FF6B6B";ctx.font="bold 18px Microsoft YaHei";ctx.fillText("🔥 "+combo+"连击!",W/2,125)}
+        ctx.fillStyle="#FFD700";ctx.font="16px Microsoft YaHei";ctx.fillText("得分: "+score,W/2,75);
+        if(combo>=2){ctx.fillStyle="#FF6B6B";ctx.font="bold 18px Microsoft YaHei";ctx.fillText("🔥 "+combo+"连击!",W/2,55)}
         ctx.textAlign="left";
         requestAnimationFrame(draw);
     }
