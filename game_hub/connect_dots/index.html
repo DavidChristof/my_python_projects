@@ -64,8 +64,7 @@
     }
 
     function setColor(c){
-        brushColor=c;toolMode=toolMode==="fill"?"brush":toolMode;
-        setTool(toolMode==="fill"?"brush":toolMode);
+        brushColor=c;
         document.querySelectorAll(".color-pick").forEach(b=>b.classList.remove("active"));
         document.getElementById("c-"+{["#000"]:"black",["#E04040"]:"red",["#FF8C00"]:"orange",["#4ECDC4"]:"teal",["#667eea"]:"blue",["#A78BFA"]:"purple",["#34D399"]:"green"}[c]).classList.add("active");
     }
@@ -130,6 +129,8 @@
             }else if(s.type==="circle"){
                 ctx.strokeStyle=s.color;ctx.lineWidth=s.size;
                 ctx.beginPath();ctx.arc(s.cx,s.cy,s.r,0,Math.PI*2);ctx.stroke();
+            }else if(s.type==="fill"){
+                floodFill(s.x,s.y,s.color);
             }
         }
     }
@@ -141,7 +142,8 @@
     // ===== 鼠标事件 =====
     canvas.addEventListener("mousedown",e=>{
         drawing=true;let p=getPos(e);
-        if(toolMode==="fill"){floodFill(Math.floor(p.x),Math.floor(p.y),brushColor);drawing=false;return}
+        if(toolMode==="fill"){floodFill(Math.floor(p.x),Math.floor(p.y),brushColor);
+            strokes.push({type:"fill",x:Math.floor(p.x),y:Math.floor(p.y),color:brushColor});drawing=false;return}
         if(toolMode==="brush"){currentStroke={type:"free",points:[p],color:brushColor,size:brushSize};strokes.push(currentStroke)}
         else{shapeStart=p;currentStroke=null}
     });
