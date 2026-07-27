@@ -59,6 +59,14 @@
         {name:"杰顿",color:"#FBBF24",hp:16},
     ];
 
+    // ===== 图片素材（有就加载，没有自动画几何图形） =====
+    const imgUltraman=new Image();imgUltraman.src="images/ultraman.png";
+    const imgMonsters=MONSTERS.map((_,i)=>{let img=new Image();img.src="images/monster_"+i+".png";return img});
+    const imgBg=new Image();imgBg.src="images/bg.png";
+    // 检查图片是否加载成功的简单标记
+    let imgsReady=false;
+    imgUltraman.onload=()=>{imgsReady=true};
+
     const ac=new(window.AudioContext||window.webkitAudioContext)();
     function beep(f,d,t="square",v=0.07){
         let o=ac.createOscillator(),g=ac.createGain();
@@ -117,6 +125,9 @@
 
         // === 奥特曼 ===
         ctx.save();ctx.translate(ux,uy);
+        if(imgUltraman.complete&&imgUltraman.naturalWidth>0){
+            ctx.drawImage(imgUltraman,-50,-120,100,140);
+        }else{
         ctx.fillStyle="#C0C0C0";ctx.beginPath();ctx.roundRect(-22,-60,44,80,10);ctx.fill();
         ctx.fillStyle="#E04040";ctx.fillRect(-22,-20,44,8);ctx.fillRect(-16,-10,32,8);
         ctx.fillStyle="#D0D0D0";ctx.beginPath();ctx.arc(0,-78,22,0,Math.PI*2);ctx.fill();
@@ -125,11 +136,15 @@
         ctx.fillStyle="#000";ctx.beginPath();ctx.arc(-7,-84,3,0,Math.PI*2);ctx.fill();
         ctx.beginPath();ctx.arc(7,-84,3,0,Math.PI*2);ctx.fill();
         if(animTimer>0&&!animText.includes("打偏")){ctx.fillStyle="#00F";ctx.beginPath();ctx.arc(0,-95,6,0,Math.PI*2);ctx.fill()}
+        } /* end else */
         ctx.restore();
 
         // === 怪兽 ===
         let mc=MONSTERS[monsterType].color;
         ctx.save();ctx.translate(mx,my);
+        if(imgMonsters[monsterType].complete&&imgMonsters[monsterType].naturalWidth>0){
+            ctx.drawImage(imgMonsters[monsterType],-55,-130,110,150);
+        }else{
         ctx.fillStyle=mc;ctx.fillRect(-30,-10,14,40);ctx.fillRect(-4,-10,14,40);ctx.fillRect(14,-10,14,40);
         ctx.fillStyle=mc;ctx.beginPath();ctx.roundRect(-26,-70,52,65,8);ctx.fill();
         ctx.fillStyle="rgba(255,255,255,0.2)";ctx.beginPath();ctx.ellipse(0,-35,16,22,0,0,Math.PI*2);ctx.fill();
@@ -141,6 +156,7 @@
         ctx.fillStyle="#000";ctx.beginPath();ctx.arc(0,-85,10,0,Math.PI);ctx.fill();
         if(animTimer>0&&!animText.includes("打偏")&&!animText.includes("出现")){
             ctx.fillStyle="rgba(255,0,0,0.3)";ctx.fillRect(-50,-120,100,140)}
+        } /* end else */
         ctx.restore();
 
         // 光线特效
