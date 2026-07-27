@@ -2,160 +2,150 @@
 <html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
-    <title>🔢 连线画画 - Game Hub</title>
+    <title>🎨 绘画板 - Game Hub</title>
     <link rel="stylesheet" href="../static/style.css">
     <style>
-        body { display:flex; flex-direction:column; user-select:none; }
-        .game-wrapper { flex:1; display:flex; flex-direction:column; align-items:center; }
-        .toolbar { display:flex; gap:10px; margin:10px 0; flex-wrap:wrap; justify-content:center; }
-        .toolbar button {
-            background:rgba(255,255,255,0.08);color:#ccc;border:1px solid rgba(255,255,255,0.15);
-            padding:10px 18px;border-radius:8px;cursor:pointer;font-size:18px;font-family:inherit;
-        }
-        .toolbar button:hover{background:rgba(102,126,234,0.3);color:#fff;}
+        body{display:flex;flex-direction:column;user-select:none}
+        .game-wrapper{flex:1;display:flex;flex-direction:column;align-items:center;padding:8px}
+        .tools{display:flex;gap:8px;align-items:center;margin-bottom:6px;flex-wrap:wrap;justify-content:center}
+        .tools button{background:rgba(255,255,255,0.08);color:#ccc;border:1px solid rgba(255,255,255,0.15);
+            padding:7px 14px;border-radius:6px;cursor:pointer;font-size:14px;font-family:inherit}
+        .tools button:hover{background:rgba(102,126,234,0.3);color:#fff}
+        .tools button.active{background:rgba(102,126,234,0.5);color:#fff;border-color:#667eea}
+        .color-pick{width:30px;height:30px;border-radius:50%;border:2px solid rgba(255,255,255,0.3);cursor:pointer}
+        .color-pick.active{border-color:#fff;box-shadow:0 0 8px rgba(255,255,255,0.4)}
+        input[type=range]{width:80px}
+        span{color:#aaa;font-size:13px}
+        canvas{border:2px solid rgba(255,255,255,0.12);border-radius:8px;background:#FFF;cursor:crosshair}
     </style>
 </head>
 <body>
     <nav class="navbar">
         <a href="../index.html" class="back">← 返回首页</a>
-        <span class="logo">🔢 连线画画</span>
+        <span class="logo">🎨 绘画板</span>
     </nav>
     <div class="game-wrapper">
-        <div class="toolbar">
-            <button onclick="loadPattern('star')">⭐ 星星</button>
-            <button onclick="loadPattern('house')">🏠 房子</button>
-            <button onclick="loadPattern('fish')">🐟 小鱼</button>
-            <button onclick="loadPattern('heart')">❤️ 爱心</button>
-            <button onclick="loadPattern('rocket')">🚀 火箭</button>
+        <div class="tools">
+            <span>画笔</span>
+            <input type="range" id="brushSize" min="1" max="30" value="4" oninput="brushSize=this.value">
+            <span id="sizeLabel">4px</span>
+            <span>|</span>
+            <button onclick="setColor('#000')" class="color-pick active" id="c-black" style="background:#000"></button>
+            <button onclick="setColor('#E04040')" class="color-pick" id="c-red" style="background:#E04040"></button>
+            <button onclick="setColor('#FF8C00')" class="color-pick" id="c-orange" style="background:#FF8C00"></button>
+            <button onclick="setColor('#4ECDC4')" class="color-pick" id="c-teal" style="background:#4ECDC4"></button>
+            <button onclick="setColor('#667eea')" class="color-pick" id="c-blue" style="background:#667eea"></button>
+            <button onclick="setColor('#A78BFA')" class="color-pick" id="c-purple" style="background:#A78BFA"></button>
+            <button onclick="setColor('#34D399')" class="color-pick" id="c-green" style="background:#34D399"></button>
+            <span>|</span>
+            <button onclick="setEraser()" id="btn-eraser">🧹 橡皮</button>
+            <button onclick="clearCanvas()">🗑 清空</button>
+            <button onclick="undoStroke()">↩ 撤销</button>
+            <button onclick="saveImage()">💾 保存</button>
         </div>
-        <canvas id="game" width="440" height="440"></canvas>
+        <canvas id="game" width="680" height="460"></canvas>
     </div>
-    <footer class="footer">按数字顺序点击圆点 &nbsp;|&nbsp; 完成图案有惊喜！&nbsp;|&nbsp; Game Hub</footer>
+    <footer class="footer">按住鼠标画线 &nbsp;|&nbsp; 支持触摸屏 &nbsp;|&nbsp; Game Hub</footer>
     <script>
     const canvas=document.getElementById("game"),ctx=canvas.getContext("2d");
-    const W=440,H=440;
+    let drawing=false, brushSize=4, brushColor="#000", isEraser=false;
+    let strokes=[], currentStroke=null;
 
-    // 图案坐标（相对坐标，自动缩放居中）
-    const patterns={
-        star:[[0,-100],[30,-40],[100,-40],[45,10],[70,80],[0,40],[-70,80],[-45,10],[-100,-40],[-30,-40]],
-        house:[[0,-100],[50,-50],[50,20],[50,80],[0,90],[-50,80],[-50,20],[-50,-50]],
-        fish:[[60,-60],[80,-30],[40,-10],[40,20],[20,50],[-20,50],[-60,30],[-80,0],[-60,-30],[-20,-40],[20,-40]],
-        heart:[[0,-85],[-30,-60],[-55,-25],[-65,15],[-45,55],[0,100],[45,55],[65,15],[55,-25],[30,-60]],
-        rocket:[[0,-100],[25,-80],[50,-40],[30,0],[30,40],[50,80],[20,70],[-20,70],[-50,80],[-30,40],[-30,0],[-50,-40],[-25,-80]],
-    };
-    const patternNames={star:"星星⭐",house:"房子🏠",fish:"小鱼🐟",heart:"爱心❤️",rocket:"火箭🚀"};
+    // 白色背景
+    ctx.fillStyle="#FFF";ctx.fillRect(0,0,680,460);
 
-    let dots=[], lines=[], current=0, complete=false, currentPattern="star";
-    let confetti=[];
-
-    const ac=new (window.AudioContext||window.webkitAudioContext)();
-    function beep(f,d,t="sine",v=0.07){
-        let o=ac.createOscillator(),g=ac.createGain();
-        o.type=t;o.frequency.setValueAtTime(f,ac.currentTime);
-        g.gain.setValueAtTime(v,ac.currentTime);
-        g.gain.exponentialRampToValueAtTime(0.001,ac.currentTime+d);
-        o.connect(g);g.connect(ac.destination);o.start();o.stop(ac.currentTime+d);
+    function setColor(c){
+        isEraser=false;brushColor=c;
+        document.getElementById("btn-eraser").classList.remove("active");
+        document.querySelectorAll(".color-pick").forEach(b=>b.classList.remove("active"));
+        document.getElementById("c-"+{["#000"]:"black",["#E04040"]:"red",["#FF8C00"]:"orange",["#4ECDC4"]:"teal",["#667eea"]:"blue",["#A78BFA"]:"purple",["#34D399"]:"green"}[c]).classList.add("active");
     }
 
-    function loadPattern(name){
-        currentPattern=name;
-        let pts=patterns[name];
-        // 缩放到 380 区域并居中
-        let maxR=0;
-        for(let [x,y] of pts) maxR=Math.max(maxR,Math.abs(x),Math.abs(y));
-        let scale=180/maxR;
-        dots=pts.map(([x,y],i)=>({x:W/2+x*scale, y:H/2+y*scale, num:i+1}));
-        lines=[];current=0;complete=false;confetti=[];
+    function setEraser(){
+        isEraser=true;
+        document.getElementById("btn-eraser").classList.add("active");
+        document.querySelectorAll(".color-pick").forEach(b=>b.classList.remove("active"));
     }
 
-    canvas.addEventListener("click",e=>{
-        if(complete){loadPattern(Object.keys(patterns)[Math.floor(Math.random()*5)]);return;}
-        let rect=canvas.getBoundingClientRect();
-        let mx=e.clientX-rect.left, my=e.clientY-rect.top;
-        if(current<dots.length){
-            let d=dots[current];
-            if(Math.hypot(mx-d.x,my-d.y)<22){
-                if(current>0) lines.push({from:dots[current-1],to:d});
-                current++;
-                beep(400+current*40,0.05,"sine",0.06);
-                if(current>=dots.length){
-                    complete=true;
-                    setTimeout(()=>beep(880,0.15),100);
-                    setTimeout(()=>beep(1100,0.12),250);
-                    // 彩花
-                    for(let i=0;i<60;i++){
-                        let ang=Math.random()*Math.PI*2, spd=3+Math.random()*8;
-                        confetti.push({x:W/2,y:H/2,vx:Math.cos(ang)*spd,vy:Math.sin(ang)*spd,
-                            color:["#FF6B6B","#4ECDC4","#FFE66D","#A78BFA","#FB923C","#34D399","#F472B6"][Math.floor(Math.random()*7)],
-                            life:40+Math.random()*40});
-                    }
-                }
-            }
+    function clearCanvas(){
+        ctx.fillStyle="#FFF";ctx.fillRect(0,0,680,460);strokes=[];
+    }
+
+    function undoStroke(){
+        strokes.pop();
+        redrawAll();
+    }
+
+    function redrawAll(){
+        ctx.fillStyle="#FFF";ctx.fillRect(0,0,680,460);
+        for(let s of strokes){
+            if(s.points.length<2)continue;
+            ctx.strokeStyle=s.color;ctx.lineWidth=s.size;
+            ctx.lineCap="round";ctx.lineJoin="round";
+            ctx.beginPath();ctx.moveTo(s.points[0].x,s.points[0].y);
+            for(let i=1;i<s.points.length;i++)ctx.lineTo(s.points[i].x,s.points[i].y);
+            ctx.stroke();
         }
+    }
+
+    function saveImage(){
+        let link=document.createElement("a");
+        link.download="我的画.png";
+        link.href=canvas.toDataURL();
+        link.click();
+    }
+
+    function getPos(e){
+        let rect=canvas.getBoundingClientRect();
+        return{x:e.clientX-rect.left,y:e.clientY-rect.top};
+    }
+
+    canvas.addEventListener("mousedown",e=>{
+        drawing=true;
+        let p=getPos(e);
+        currentStroke={points:[p],color:isEraser?"#FFF":brushColor,size:isEraser?brushSize*3:brushSize};
+        strokes.push(currentStroke);
     });
 
-    function draw(){
-        ctx.fillStyle="#1a1a2e";ctx.fillRect(0,0,W,H);
+    canvas.addEventListener("mousemove",e=>{
+        if(!drawing)return;
+        let p=getPos(e);
+        currentStroke.points.push(p);
+        // 平滑绘制
+        let pts=currentStroke.points;
+        if(pts.length<2)return;
+        ctx.strokeStyle=currentStroke.color;
+        ctx.lineWidth=currentStroke.size;
+        ctx.lineCap="round";ctx.lineJoin="round";
+        ctx.beginPath();ctx.moveTo(pts[pts.length-2].x,pts[pts.length-2].y);
+        ctx.lineTo(p.x,p.y);ctx.stroke();
+    });
 
-        // 连线
-        ctx.strokeStyle="#667eea";ctx.lineWidth=3;ctx.lineCap="round";
-        for(let l of lines){ctx.beginPath();ctx.moveTo(l.from.x,l.from.y);ctx.lineTo(l.to.x,l.to.y);ctx.stroke();}
+    canvas.addEventListener("mouseup",()=>{drawing=false});
+    canvas.addEventListener("mouseleave",()=>{drawing=false});
 
-        // 下一个提示
-        if(current>0&&current<dots.length){
-            ctx.strokeStyle="rgba(102,126,234,0.3)";ctx.lineWidth=2;ctx.setLineDash([6,6]);
-            ctx.beginPath();ctx.moveTo(dots[current-1].x,dots[current-1].y);
-            ctx.lineTo(dots[current].x,dots[current].y);ctx.stroke();
-            ctx.setLineDash([]);
-        }
+    // 触摸支持
+    canvas.addEventListener("touchstart",e=>{e.preventDefault();drawing=true;
+        let t=e.touches[0],p=getPos(t);
+        currentStroke={points:[p],color:isEraser?"#FFF":brushColor,size:isEraser?brushSize*3:brushSize};
+        strokes.push(currentStroke);
+    });
+    canvas.addEventListener("touchmove",e=>{e.preventDefault();if(!drawing)return;
+        let t=e.touches[0],p=getPos(t);
+        currentStroke.points.push(p);
+        let pts=currentStroke.points;
+        if(pts.length<2)return;
+        ctx.strokeStyle=currentStroke.color;ctx.lineWidth=currentStroke.size;
+        ctx.lineCap="round";ctx.lineJoin="round";
+        ctx.beginPath();ctx.moveTo(pts[pts.length-2].x,pts[pts.length-2].y);
+        ctx.lineTo(p.x,p.y);ctx.stroke();
+    });
+    canvas.addEventListener("touchend",()=>{drawing=false});
 
-        // 圆点
-        for(let d of dots){
-            let isNext=d.num===current+1, connected=d.num<=current;
-            let r=isNext?22:18;
-            // 外圈发光
-            if(isNext&&!complete){
-                ctx.fillStyle="rgba(255,255,100,0.2)";
-                ctx.beginPath();ctx.arc(d.x,d.y,r+8,0,Math.PI*2);ctx.fill();
-            }
-            ctx.fillStyle=connected?"#4ECDC4":"#667eea";
-            ctx.beginPath();ctx.arc(d.x,d.y,r,0,Math.PI*2);ctx.fill();
-            ctx.strokeStyle="rgba(255,255,255,0.5)";ctx.lineWidth=2;ctx.stroke();
-
-            // 数字
-            ctx.fillStyle=connected?"#fff":"rgba(255,255,255,0.8)";
-            ctx.font="bold 16px Microsoft YaHei";ctx.textAlign="center";ctx.textBaseline="middle";
-            ctx.fillText(d.num,d.x,d.y);
-        }
-
-        // 彩花
-        for(let c of confetti){
-            ctx.fillStyle=c.color;ctx.fillRect(c.x,c.y,6,6);
-        }
-
-        // 完成提示
-        if(complete){
-            ctx.fillStyle="rgba(0,0,0,0.5)";ctx.fillRect(0,0,W,H);
-            ctx.fillStyle="#FFD700";ctx.font="bold 36px Microsoft YaHei";ctx.textAlign="center";
-            ctx.fillText("🎉 太棒了！",W/2,H/2-20);
-            ctx.fillStyle="#FFF";ctx.font="18px Microsoft YaHei";
-            ctx.fillText("你画出了 " + patternNames[currentPattern] + "！",W/2,H/2+20);
-            ctx.fillText("点击任意位置换图案",W/2,H/2+50);
-        }
-
-        // 顶部提示
-        ctx.fillStyle="rgba(255,255,255,0.5)";ctx.font="15px Microsoft YaHei";ctx.textAlign="center";
-        if(!complete) ctx.fillText("请点击数字 " + (current + 1), W/2, 20);
-    }
-
-    function update(){
-        for(let c of confetti){c.x+=c.vx;c.y+=c.vy;c.vy+=0.15;c.life--;}
-        confetti=confetti.filter(c=>c.life>0);
-    }
-
-    loadPattern("star");
-    function loop(){update();draw();requestAnimationFrame(loop);}
-    loop();
+    // 画笔大小显示
+    document.getElementById("brushSize").addEventListener("input",function(){
+        document.getElementById("sizeLabel").textContent=this.value+"px";
+    });
     </script>
 </body>
 </html>
