@@ -30,6 +30,7 @@
             <button onclick="setTool('fill')" id="btn-fill">🪣 填充</button>
             <button onclick="setTool('rect')" id="btn-rect">⬜ 矩形</button>
             <button onclick="setTool('circle')" id="btn-circle">⭕ 圆形</button>
+            <button onclick="setTool('eraser')" id="btn-eraser">🧹 橡皮</button>
             <span>|</span>
             <span>粗细</span>
             <input type="range" id="brushSize" min="1" max="30" value="4" oninput="brushSize=this.value">
@@ -144,13 +145,16 @@
         drawing=true;let p=getPos(e);
         if(toolMode==="fill"){floodFill(Math.floor(p.x),Math.floor(p.y),brushColor);
             strokes.push({type:"fill",x:Math.floor(p.x),y:Math.floor(p.y),color:brushColor});drawing=false;return}
-        if(toolMode==="brush"){currentStroke={type:"free",points:[p],color:brushColor,size:brushSize};strokes.push(currentStroke)}
+        if(toolMode==="brush"||toolMode==="eraser"){
+            let c=toolMode==="eraser"?"#FFF":brushColor;
+            let s=toolMode==="eraser"?brushSize*3:brushSize;
+            currentStroke={type:"free",points:[p],color:c,size:s};strokes.push(currentStroke)}
         else{shapeStart=p;currentStroke=null}
     });
 
     canvas.addEventListener("mousemove",e=>{
         if(!drawing)return;let p=getPos(e);
-        if(toolMode==="brush"&&currentStroke){
+        if((toolMode==="brush"||toolMode==="eraser")&&currentStroke){
             currentStroke.points.push(p);
             let pts=currentStroke.points;if(pts.length<2)return;
             ctx.strokeStyle=currentStroke.color;ctx.lineWidth=currentStroke.size;ctx.lineCap="round";ctx.lineJoin="round";
