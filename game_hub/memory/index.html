@@ -30,7 +30,7 @@
     <footer class="footer">点击卡片翻牌 &nbsp;|&nbsp; 找出所有配对 &nbsp;|&nbsp; Game Hub</footer>
     <script>
     const canvas=document.getElementById("game"),ctx=canvas.getContext("2d");
-    const GAP=8;
+    const GAP=6;
     let ROWS=4,COLS=4,CARD_W=90,CARD_H=100,BOARD_X=0,BOARD_Y=20;
     const ALL_EMOJIS=["🐶","🐱","🐸","🦊","🐻","🐼","🐨","🐯","🐮","🐷","🐵","🐰","🐙","🦁","🐥"];
     let cards=[],flipped=[],matched=new Set(),moves=0,locked=false;
@@ -47,8 +47,8 @@
     function shuffle(a){for(let i=a.length-1;i>0;i--){let j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a}
 
     function calcLayout(){
-        CARD_W=Math.floor((600-COLS*(GAP+4))/COLS);
-        CARD_H=CARD_W+10;
+        CARD_W=Math.floor((630-COLS*(GAP+2))/COLS);
+        CARD_H=CARD_W+8;
         BOARD_X=Math.floor((640-COLS*(CARD_W+GAP)+GAP)/2);
         BOARD_Y=Math.floor((560-ROWS*(CARD_H+GAP)+GAP)/2);
     }
