@@ -23,7 +23,7 @@
     const BOARD_X = (420-W)/2, BOARD_Y = (460-H)/2;
 
     let snake = [], food = {}, dir = {x:1,y:0}, nextDir = {x:1,y:0};
-    let score = 0, playing = false, speed = 100, timer = null;
+    let score = 0, playing = false, speed = 70, timer = null;
 
     const ac = new (window.AudioContext||window.webkitAudioContext)();
     function beep(f,d,t="square",v=0.06){
