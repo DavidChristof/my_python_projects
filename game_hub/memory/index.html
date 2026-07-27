@@ -25,7 +25,7 @@
             <button onclick="setDifficulty(6,5)" id="btn-hard">困难 6×5</button>
             <span style="color:#aaa;font-size:14px">步数: <b style="color:#FFD700" id="md">0</b></span>
         </div>
-        <canvas id="game" width="640" height="560"></canvas>
+        <canvas id="game" width="640" height="700"></canvas>
     </div>
     <footer class="footer">点击卡片翻牌 &nbsp;|&nbsp; 找出所有配对 &nbsp;|&nbsp; Game Hub</footer>
     <script>
@@ -52,7 +52,7 @@
         else if(ROWS===6&&COLS===4){CARD_W=94;CARD_H=102}
         else{CARD_W=88;CARD_H=92}
         BOARD_X=Math.floor((640-COLS*(CARD_W+GAP)+GAP)/2);
-        BOARD_Y=Math.floor((560-ROWS*(CARD_H+GAP)+GAP)/2);
+        BOARD_Y=Math.floor((700-ROWS*(CARD_H+GAP)+GAP)/2);
     }
 
     function init(){
@@ -97,7 +97,7 @@
     });
 
     function draw(){
-        ctx.fillStyle="#1a1a2e";ctx.fillRect(0,0,640,560);
+        ctx.fillStyle="#1a1a2e";ctx.fillRect(0,0,640,700);
         for(let card of cards){
             let x=BOARD_X+card.col*(CARD_W+GAP),y=BOARD_Y+card.row*(CARD_H+GAP);
             let show=card.flipped||matched.has(card);
@@ -117,7 +117,7 @@
             }
         }
         if(matched.size===ROWS*COLS){
-            ctx.fillStyle="rgba(0,0,0,0.6)";ctx.fillRect(0,0,640,560);
+            ctx.fillStyle="rgba(0,0,0,0.6)";ctx.fillRect(0,0,640,700);
             ctx.fillStyle="#4F0";ctx.font="bold 36px Microsoft YaHei";ctx.textAlign="center";
             ctx.fillText("🎉 恭喜通关！",320,260);
             ctx.fillStyle="#FFF";ctx.font="20px Microsoft YaHei";
