@@ -5,23 +5,24 @@
     <title>⚡ 奥特曼算术 - Game Hub</title>
     <link rel="stylesheet" href="../static/style.css">
     <style>
-        body{display:flex;flex-direction:column;user-select:none;background:#0a0a1a}
+        body{user-select:none}
         .game-wrapper{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center}
         .battle-area{position:relative;width:680px;height:420px}
-        canvas{display:block;border:2px solid rgba(255,255,255,0.12);border-radius:12px}
         .quiz-box{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);
-            background:rgba(0,0,0,0.85);border:2px solid rgba(255,255,100,0.4);border-radius:14px;
+            background:rgba(0,0,0,.88);border:3px solid var(--neon-yellow);
+            box-shadow:0 0 0 3px var(--ink),0 0 26px rgba(255,233,0,.28);
             padding:20px 28px;text-align:center;z-index:10}
-        .quiz-box .question{color:#FFD700;font-size:30px;font-weight:bold;margin-bottom:12px}
-        .quiz-box input{width:90px;height:38px;font-size:22px;text-align:center;border-radius:8px;
-            border:2px solid #FFD700;background:#1a1a2e;color:#FFF;outline:none}
-        .quiz-box button{display:block;margin:10px auto 0;padding:8px 26px;font-size:16px;
-            background:#667eea;color:#fff;border:none;border-radius:8px;cursor:pointer;font-family:inherit}
-        .quiz-box button:hover{background:#764ba2}
+        .quiz-box .question{color:var(--neon-yellow);font-size:28px;font-weight:bold;margin-bottom:12px;
+            font-family:var(--font-pixel);text-shadow:0 3px 0 #000}
+        .quiz-box input{width:92px;height:42px;font-size:22px;text-align:center;color:#FFF;outline:none;
+            font-family:var(--font-pixel);background:var(--bg);border:3px solid var(--neon-yellow)}
+        .quiz-box input:focus{box-shadow:0 0 14px rgba(255,233,0,.5)}
+        .quiz-box .fire{display:block;margin:10px auto 0;padding:9px 26px;font-size:15px;cursor:pointer;
+            font-family:var(--font-pixel);background:var(--neon-pink);color:#000;border:3px solid var(--ink);
+            box-shadow:0 4px 0 var(--ink)}
+        .quiz-box .fire:hover{filter:brightness(1.12)}
+        .quiz-box .fire:active{transform:translateY(4px);box-shadow:0 0 0 var(--ink)}
         .difficulty{display:flex;gap:6px;margin-bottom:8px}
-        .difficulty button{background:rgba(255,255,255,0.08);color:#aaa;border:1px solid rgba(255,255,255,0.15);
-            padding:5px 12px;border-radius:6px;cursor:pointer;font-size:12px;font-family:inherit}
-        .difficulty button.active{background:rgba(102,126,234,0.5);color:#fff;border-color:#667eea}
     </style>
 </head>
 <body>
@@ -40,7 +41,7 @@
                 </div>
                 <div class="question" id="question">3 + 5 = ?</div>
                 <input type="number" id="answer" placeholder="?" autofocus>
-                <button onclick="submitAnswer()">⚡ 发射光线！</button>
+                <button class="fire" onclick="submitAnswer()">⚡ 发射光线！</button>
             </div>
         </div>
     </div>

@@ -3,81 +3,260 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>🎮 Game Hub - 小游戏合集</title>
+    <title>🎮 GAME HUB · 复古像素小游戏合集</title>
     <link rel="stylesheet" href="static/style.css">
+    <style>
+        /* ================= 主页专属：像素封面 + 布局 ================= */
+
+        /* 每款游戏卡片的霓虹主色 */
+        .card-flappy { --card-neon: var(--neon-cyan);   --card-glow: rgba(0,255,255,.35); }
+        .card-tetris { --card-neon: #FF5CD1;            --card-glow: rgba(255,92,209,.35); }
+        .card-memory { --card-neon: var(--neon-pink);   --card-glow: rgba(255,20,147,.35); }
+        .card-whack  { --card-neon: var(--neon-orange); --card-glow: rgba(255,106,0,.35); }
+        .card-snake  { --card-neon: var(--neon-green);  --card-glow: rgba(0,255,65,.35); }
+        .card-mine   { --card-neon: #FF3B30;            --card-glow: rgba(255,59,48,.35); }
+        .card-ultra  { --card-neon: var(--neon-yellow); --card-glow: rgba(255,233,0,.35); }
+        .card-paint  { --card-neon: #FF7AB8;            --card-glow: rgba(255,122,184,.35); }
+
+        .hidden { display: none; }
+
+        /* ============ Flappy Bird 封面 ============ */
+        .cover-flappy { background: linear-gradient(180deg, #6cc0ff 0%, #cfefff 100%); }
+        .fl-bird { position:absolute; left:36%; top:30%; width:26px; height:22px; background:#FFD93D;
+            border:3px solid #000; box-shadow:0 3px 0 #000; z-index:3; animation: floaty 2.4s ease-in-out infinite; }
+        .fl-bird::before { content:""; position:absolute; left:-5px; top:7px; width:11px; height:10px;
+            background:#F5A623; border:3px solid #000; }
+        .fl-eye { position:absolute; right:2px; top:2px; width:7px; height:7px; background:#fff; border:2px solid #000; }
+        .fl-eye::after { content:""; position:absolute; right:0; bottom:0; width:3px; height:3px; background:#000; }
+        .fl-beak { position:absolute; right:-11px; top:8px; width:10px; height:7px; background:#FF6A00; border:2px solid #000; }
+        .fl-pipe { position:absolute; bottom:-10px; width:32px; background:#2ECC40; border:3px solid #000; box-shadow:0 3px 0 #000; }
+        .fl-pipe::before { content:""; position:absolute; top:-13px; left:-4px; width:34px; height:15px; background:#2ECC40; border:3px solid #000; }
+        .fl-pipe::after { content:""; position:absolute; top:-8px; left:-1px; width:27px; height:7px; background:rgba(255,255,255,.35); }
+        .fl-pipe-back { left:12%; height:52%; }
+        .fl-pipe-front { right:14%; height:74%; }
+        .fl-cloud { position:absolute; left:10%; top:14%; width:46px; height:16px; background:#fff;
+            border:3px solid #000; box-shadow:0 3px 0 #000; opacity:.92; z-index:2; }
+        .fl-cloud::before, .fl-cloud::after { content:""; position:absolute; background:#fff; border:3px solid #000; }
+        .fl-cloud::before { width:18px; height:18px; left:7px; top:-12px; }
+        .fl-cloud::after { width:13px; height:13px; right:9px; top:-9px; }
+
+        /* ============ 俄罗斯方块封面 ============ */
+        .cover-tetris { background: linear-gradient(180deg,#1a1a3a,#0d0d1f); }
+        .tetr { position:absolute; width:24px; height:24px; border:3px solid #000;
+            box-shadow: inset 0 0 0 2px rgba(255,255,255,.22), 0 3px 0 #000; }
+
+        /* ============ 记忆翻牌封面 ============ */
+        .cover-memory { background: linear-gradient(180deg,#1a1a3a,#0d0d1f);
+            display:flex; align-items:center; justify-content:center; }
+        .mem-grid { display:grid; grid-template-columns:repeat(3,44px); grid-template-rows:repeat(2,56px); gap:10px; }
+        .mem-card { background:#5B3DF5; border:3px solid #000; box-shadow:0 4px 0 #000; color:#fff;
+            font-family:var(--font-pixel); display:flex; align-items:center; justify-content:center; font-size:17px; }
+        .mem-card.flip { background:#FFE900; color:#000; animation: glowBlink 1.6s ease-in-out infinite; }
+
+        /* ============ 打地鼠封面 ============ */
+        .cover-whack { background: linear-gradient(180deg,#14562a,#0a2412); }
+        .hole { position:absolute; bottom:7%; width:76px; height:24px; background:#3a2510; border:3px solid #000;
+            border-radius:50%; box-shadow: inset 0 7px 0 #1a0f05, 0 3px 0 #000; }
+        .hole::after { content:""; position:absolute; inset:6px 11px; background:#1a0f05; border-radius:50%; }
+        .hole-1 { left:16%; } .hole-2 { left:50%; } .hole-3 { left:84%; }
+        .mole { position:absolute; bottom:14%; left:50%; transform:translateX(-50%); width:42px; height:30px;
+            background:#8B6914; border:3px solid #000; box-shadow:0 3px 0 #000; animation: molePop 2.4s ease-in-out infinite; z-index:2; }
+        .mole i { position:absolute; top:6px; width:8px; height:8px; background:#fff; border:2px solid #000; }
+        .mole i::after { content:""; position:absolute; right:0; bottom:0; width:3px; height:3px; background:#000; }
+        .mole i:nth-of-type(1) { left:7px; }
+        .mole i:nth-of-type(2) { right:7px; }
+        .mole-hammer { position:absolute; top:8%; right:10%; font-size:26px; transform:rotate(24deg);
+            filter:drop-shadow(0 3px 0 rgba(0,0,0,.4)); animation: floaty 2s ease-in-out infinite; }
+
+        /* ============ 贪吃蛇封面 ============ */
+        .cover-snake { background:
+            linear-gradient(rgba(255,255,255,.035) 1px, transparent 1px),
+            linear-gradient(90deg, rgba(255,255,255,.035) 1px, transparent 1px),
+            #0d1f0d;
+            background-size: 22px 22px; }
+        .sblk { position:absolute; width:18px; height:18px; border:2px solid #000; box-shadow:0 2px 0 #000; }
+        .sblk.s-body { background:#2ECC40; }
+        .sblk.s-head { background:#27AE60; z-index:2; animation: blink 1.1s steps(2,start) infinite; }
+        .sblk.s-head::before, .sblk.s-head::after { content:""; position:absolute; width:5px; height:5px;
+            background:#fff; border:2px solid #000; top:1px; }
+        .sblk.s-head::before { left:1px; } .sblk.s-head::after { right:1px; }
+        .sblk.s-food { background:#FF3B30; }
+
+        /* ============ 扫雷封面 ============ */
+        .cover-mine { background:#3f6b27; display:grid; grid-template-columns:repeat(4,1fr); gap:4px; padding:16px; }
+        .mcell { background:#5a8a3c; border:2px solid #000; aspect-ratio:1; display:flex;
+            align-items:center; justify-content:center; font-size:15px; }
+        .mcell.lite { background:#7cb060; }
+
+        /* ============ 奥特曼算术封面 ============ */
+        .cover-ultra { background: linear-gradient(180deg,#2b1a4a,#150a2a); }
+        .ult-bolt { position:absolute; top:12%; left:14%; font-size:40px; color:var(--neon-yellow);
+            filter:drop-shadow(0 0 12px rgba(255,233,0,.9)); animation: floaty 3s ease-in-out infinite; }
+        .ult-mono { position:absolute; right:12%; bottom:2%; font-size:54px;
+            filter:drop-shadow(0 0 14px rgba(192,132,252,.8)); animation: floaty 2.8s ease-in-out infinite; }
+        .ult-q { position:absolute; left:12%; bottom:10%; font-family:var(--font-pixel); font-size:15px;
+            color:#fff; text-shadow:0 3px 0 #000; letter-spacing:1px; }
+
+        /* ============ 绘画板封面 ============ */
+        .cover-paint { background: linear-gradient(180deg,#f7f7fb,#e6e6f0); }
+        .paint-brush { position:absolute; top:12%; left:50%; transform:translateX(-50%) rotate(-8deg);
+            font-size:44px; filter:drop-shadow(0 4px 0 rgba(0,0,0,.18)); }
+        .paint-stroke { position:absolute; bottom:18%; left:10%; right:10%; height:15px; border:3px solid #000;
+            box-shadow:0 3px 0 #000; border-radius:9px; transform:rotate(-3deg);
+            background:linear-gradient(90deg,#FF3B30,#FF9500,#FFE900,#00FF41,#00AEEF,#AF52DE); }
+        .paint-dot { position:absolute; width:12px; height:12px; border:2px solid #000; border-radius:50%; }
+
+        /* 动效补充 */
+        @keyframes molePop {
+            0%, 100% { transform: translateX(-50%) translateY(14px); opacity:.2; }
+            55% { transform: translateX(-50%) translateY(0); opacity:1; }
+        }
+        @keyframes glowBlink {
+            0%, 100% { box-shadow: 0 4px 0 #000, 0 0 10px rgba(255,233,0,.8); }
+            50% { box-shadow: 0 4px 0 #000, 0 0 20px rgba(255,233,0,1); }
+        }
+    </style>
 </head>
 <body>
     <nav class="navbar">
-        <span class="logo">🎮 Game Hub</span>
+        <a href="#" class="logo">▶ GAME<span class="logo-accent">HUB</span></a>
+        <div class="nav-links">
+            <a href="#games">游戏列表</a>
+            <span class="coin">INSERT COIN</span>
+        </div>
     </nav>
 
     <section class="hero">
-        <h1>小游戏合集</h1>
-        <p>西北工业大学 · Python & JavaScript 全栈项目</p>
+        <div class="pixel-decor"><i></i><i></i><i></i><i></i><i></i><i></i></div>
+        <p class="hero-eyebrow">★ 西北工业大学 · Python &amp; JavaScript 全栈项目 ★</p>
+        <h1 class="hero-title">GAME<span>HUB</span></h1>
+        <p class="hero-sub">— 小游戏合集 · 选择一个游戏，开始冒险！ —</p>
+        <a href="#games" class="btn">▶ 开始游戏</a><span class="blink-cursor">▮</span>
     </section>
 
-    <div class="games-grid">
-        <a href="flappy/index.html" class="game-card">
-            <div class="icon">🐤</div>
-            <h2>Flappy Bird</h2>
-            <p class="desc">操控小鸟穿过管道间隙，<br>考验你的反应速度！</p>
-            <span class="tag">Canvas 游戏</span>
-        </a>
+    <section class="filters" id="games">
+        <button data-filter="all" class="active">全部</button>
+        <button data-filter="经典游戏">经典游戏</button>
+        <button data-filter="幼儿益智">幼儿益智</button>
+        <button data-filter="教育游戏">教育游戏</button>
+        <button data-filter="创意工具">创意工具</button>
+        <button data-filter="Canvas 游戏">Canvas 游戏</button>
+    </section>
 
-        <a href="tetris/index.html" class="game-card">
-            <div class="icon">🧱</div>
-            <h2>俄罗斯方块</h2>
-            <p class="desc">经典益智游戏，<br>堆叠消除挑战高分！</p>
-            <span class="tag">Canvas 游戏</span>
-        </a>
-    </div>
+    <section class="games-grid" id="grid"></section>
 
-    <div class="games-grid" style="padding-top:0;">
-        <a href="memory/index.html" class="game-card">
-            <div class="icon">🧩</div>
-            <h2>记忆翻牌</h2>
-            <p class="desc">翻开卡片找配对，<br>锻炼记忆力与专注力！</p>
-            <span class="tag">幼儿益智</span>
-        </a>
+    <footer class="footer">★ PRESS START TO PLAY · 西北工业大学 · Game Hub · 2026 ★</footer>
 
-        <a href="whack/index.html" class="game-card">
-            <div class="icon">🔨</div>
-            <h2>打地鼠</h2>
-            <p class="desc">地鼠冒头快快打，<br>30秒挑战最高分！</p>
-            <span class="tag">幼儿益智</span>
-        </a>
+    <script>
+    // ============ 卡片数据 ============
+    const TAG_COLORS = {
+        "经典游戏":  "var(--neon-yellow)",
+        "幼儿益智":  "var(--neon-pink)",
+        "教育游戏":  "var(--neon-orange)",
+        "创意工具":  "var(--neon-green)",
+        "Canvas 游戏":"var(--neon-cyan)"
+    };
 
-        <a href="snake/index.html" class="game-card">
-            <div class="icon">🐍</div>
-            <h2>贪吃蛇</h2>
-            <p class="desc">经典街机游戏，<br>吃食物变长挑战高分！</p>
-            <span class="tag">经典游戏</span>
-        </a>
+    // 每款游戏的 CSS 像素封面（HTML 片段）
+    const COVERS = {
+        flappy: `
+            <div class="fl-cloud"></div>
+            <div class="fl-pipe fl-pipe-back"></div>
+            <div class="fl-pipe fl-pipe-front"></div>
+            <div class="fl-bird"><i class="fl-eye"></i><i class="fl-beak"></i></div>`,
+        tetris: `
+            <i class="tetr" style="left:22%;top:70%;background:#FF5CD1"></i>
+            <i class="tetr" style="left:38%;top:70%;background:#00FFFF"></i>
+            <i class="tetr" style="left:54%;top:70%;background:#FFE900"></i>
+            <i class="tetr" style="left:70%;top:70%;background:#00FF41"></i>
+            <i class="tetr" style="left:22%;top:54%;background:#00FFFF"></i>
+            <i class="tetr" style="left:38%;top:54%;background:#FFE900"></i>
+            <i class="tetr" style="left:70%;top:38%;background:#FF5CD1"></i>
+            <i class="tetr" style="left:70%;top:54%;background:#FF5CD1"></i>
+            <i class="tetr" style="left:54%;top:12%;background:#C84BFF;box-shadow:0 6px 0 rgba(0,0,0,.35)"></i>`,
+        memory: `
+            <div class="mem-grid">
+                <span class="mem-card">?</span><span class="mem-card">?</span><span class="mem-card">?</span>
+                <span class="mem-card">?</span><span class="mem-card flip">🐶</span><span class="mem-card">?</span>
+            </div>`,
+        whack: `
+            <span class="mole-hammer">🔨</span>
+            <div class="mole"><i></i><i></i></div>
+            <div class="hole hole-1"></div><div class="hole hole-2"></div><div class="hole hole-3"></div>`,
+        snake: `
+            <i class="sblk s-food" style="left:72%;top:24%"></i>
+            <i class="sblk s-body" style="left:64%;top:58%"></i>
+            <i class="sblk s-body" style="left:52%;top:58%"></i>
+            <i class="sblk s-body" style="left:52%;top:44%"></i>
+            <i class="sblk s-body" style="left:40%;top:44%"></i>
+            <i class="sblk s-body" style="left:28%;top:44%"></i>
+            <i class="sblk s-head" style="left:28%;top:30%"></i>`,
+        mine: `
+            <span class="mcell">🚩</span><span class="mcell"></span><span class="mcell"></span><span class="mcell lite">💣</span>
+            <span class="mcell"></span><span class="mcell lite"></span><span class="mcell">🚩</span><span class="mcell"></span>
+            <span class="mcell"></span><span class="mcell"></span><span class="mcell lite"></span><span class="mcell"></span>
+            <span class="mcell lite"></span><span class="mcell"></span><span class="mcell"></span><span class="mcell"></span>`,
+        ultra: `
+            <span class="ult-bolt">⚡</span>
+            <span class="ult-q">3 + 5 = ?</span>
+            <span class="ult-mono">👾</span>`,
+        paint: `
+            <span class="paint-brush">🖌️</span>
+            <div class="paint-stroke"></div>
+            <i class="paint-dot" style="left:12%;bottom:6%;background:#FF3B30"></i>
+            <i class="paint-dot" style="left:24%;bottom:6%;background:#FF9500"></i>
+            <i class="paint-dot" style="left:36%;bottom:6%;background:#FFE900"></i>
+            <i class="paint-dot" style="left:48%;bottom:6%;background:#00FF41"></i>
+            <i class="paint-dot" style="left:60%;bottom:6%;background:#00AEEF"></i>
+            <i class="paint-dot" style="left:72%;bottom:6%;background:#AF52DE"></i>`
+    };
 
-        <a href="minesweeper/index.html" class="game-card">
-            <div class="icon">💣</div>
-            <h2>扫雷</h2>
-            <p class="desc">经典逻辑游戏，<br>推理数字找出所有地雷！</p>
-            <span class="tag">经典游戏</span>
-        </a>
-    </div>
+    const GAMES = [
+        { url:"flappy/index.html",   name:"Flappy Bird",  icon:"🐤", tag:"Canvas 游戏", diff:2, cover:"flappy", desc:"操控小鸟穿过管道间隙，考验你的反应速度！" },
+        { url:"tetris/index.html",   name:"俄罗斯方块",   icon:"🧱", tag:"Canvas 游戏", diff:3, cover:"tetris", desc:"经典益智游戏，堆叠消除挑战高分！" },
+        { url:"memory/index.html",   name:"记忆翻牌",     icon:"🧩", tag:"幼儿益智", diff:1, cover:"memory", desc:"翻开卡片找配对，锻炼记忆力与专注力！" },
+        { url:"whack/index.html",    name:"打地鼠",       icon:"🔨", tag:"幼儿益智", diff:1, cover:"whack",  desc:"地鼠冒头快快打，30秒挑战最高分！" },
+        { url:"snake/index.html",    name:"贪吃蛇",       icon:"🐍", tag:"经典游戏", diff:2, cover:"snake",  desc:"经典街机游戏，吃食物变长挑战高分！" },
+        { url:"minesweeper/index.html", name:"扫雷",      icon:"💣", tag:"经典游戏", diff:3, cover:"mine",   desc:"经典逻辑游戏，推理数字找出所有地雷！" },
+        { url:"ultra_math/index.html", name:"奥特曼算术", icon:"⚡", tag:"教育游戏", diff:2, cover:"ultra",  desc:"答对算术题给怪兽造成伤害，连击击败四大怪兽！" },
+        { url:"drawing_board/index.html", name:"绘画板",  icon:"🎨", tag:"创意工具", diff:1, cover:"paint",  desc:"自由涂鸦画板，多种颜色支持保存导出！" }
+    ];
 
-    <div class="games-grid" style="padding-top:0;">
-        <a href="ultra_math/index.html" class="game-card">
-            <div class="icon">⚡</div>
-            <h2>奥特曼算术</h2>
-            <p class="desc">答对算术题给怪兽造成伤害，<br>连击击败四大怪兽！</p>
-            <span class="tag">教育游戏</span>
-        </a>
+    function stars(n){
+        return "★".repeat(n) + '<span class="off">' + "★".repeat(3 - n) + "</span>";
+    }
 
-        <a href="drawing_board/index.html" class="game-card">
-            <div class="icon">🎨</div>
-            <h2>绘画板</h2>
-            <p class="desc">自由涂鸦画板，<br>多种颜色支持保存导出！</p>
-            <span class="tag">创意工具</span>
-        </a>
-    </div>
+    // ============ 渲染卡片 ============
+    document.getElementById("grid").innerHTML = GAMES.map((g, i) => `
+        <a class="game-card card-${g.cover}" data-tag="${g.tag}" href="${g.url}" style="animation-delay:${i * 70}ms">
+            <div class="cover cover-${g.cover}">${COVERS[g.cover]}</div>
+            <div class="card-body">
+                <div class="card-top"><h2>${g.icon} ${g.name}</h2><span class="diff">${stars(g.diff)}</span></div>
+                <p class="desc">${g.desc}</p>
+                <div class="card-bottom">
+                    <span class="tag" style="--tag-color:${TAG_COLORS[g.tag]}">${g.tag}</span>
+                    <span class="start-hint">START</span>
+                </div>
+            </div>
+        </a>`).join("");
 
-    <footer class="footer">西北工业大学 · Game Hub · 2026</footer>
+    // ============ 分类筛选 ============
+    document.querySelectorAll(".filters button").forEach(btn => {
+        btn.addEventListener("click", () => {
+            document.querySelectorAll(".filters button").forEach(b => b.classList.remove("active"));
+            btn.classList.add("active");
+            const f = btn.dataset.filter;
+            document.querySelectorAll(".game-card").forEach(card => {
+                const show = f === "all" || card.dataset.tag === f;
+                card.classList.toggle("hidden", !show);
+                if (show) { // 重新触发入场动画
+                    card.style.animation = "none";
+                    void card.offsetWidth;
+                    card.style.animation = "";
+                }
+            });
+        });
+    });
+    </script>
 </body>
 </html>

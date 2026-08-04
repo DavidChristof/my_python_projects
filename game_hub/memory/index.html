@@ -5,12 +5,9 @@
     <title>🧩 记忆翻牌 - Game Hub</title>
     <link rel="stylesheet" href="../static/style.css">
     <style>
-        body{display:flex;flex-direction:column;user-select:none}
+        body{user-select:none}
         .game-wrapper{flex:1;display:flex;flex-direction:column;align-items:center}
-        .toolbar{display:flex;gap:10px;margin:10px 0;align-items:center}
-        .toolbar button{background:rgba(255,255,255,0.08);color:#ccc;border:1px solid rgba(255,255,255,0.15);padding:8px 18px;border-radius:8px;cursor:pointer;font-size:15px;font-family:inherit}
-        .toolbar button:hover{background:rgba(102,126,234,0.3);color:#fff}
-        .toolbar button.active{background:rgba(102,126,234,0.5);color:#fff;border-color:#667eea}
+        .toolbar{display:flex;gap:10px;margin:10px 0;align-items:center;flex-wrap:wrap;justify-content:center}
     </style>
 </head>
 <body>
@@ -23,7 +20,7 @@
             <button onclick="setDifficulty(4,4)" id="btn-easy" class="active">简单 4×4</button>
             <button onclick="setDifficulty(6,4)" id="btn-mid">中等 6×4</button>
             <button onclick="setDifficulty(6,5)" id="btn-hard">困难 6×5</button>
-            <span style="color:#aaa;font-size:14px">步数: <b style="color:#FFD700" id="md">0</b></span>
+            <span class="stat">步数: <b id="md">0</b></span>
         </div>
         <canvas id="game" width="640" height="700"></canvas>
     </div>
